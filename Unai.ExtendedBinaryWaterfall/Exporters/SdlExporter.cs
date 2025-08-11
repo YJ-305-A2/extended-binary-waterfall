@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Unai.ExtendedBinaryWaterfall.Exporters;
 
-[Exporter("sdl", "SDL Window", "Show the generated audio and video data in a window.")]
+[Exporter("sdl", "SDL窗口", "在窗口中显示生成的音视频数据。")]
 public class SdlExporter : IExporter
 {
 	public Generator Generator { get; set; }
@@ -26,7 +26,7 @@ public class SdlExporter : IExporter
 	private int _frameCount = 0;
 	private double _ts = 0;
 
-	[CliParameter("Adaptive Output Video Resolution", "sdl:adaptive-video-resolution", "Change generator parameters based on window size")]
+	[CliParameter("自适应输出视频分辨率", "sdl:adaptive-video-resolution", "根据窗口尺寸调整生成器参数")]
 	public bool AdaptiveFramebufferSize { get; set; } = false;
 
 	public void InitializeSdl()
@@ -43,11 +43,11 @@ public class SdlExporter : IExporter
 				(int)(Generator.OutputVideoHeight * .75f),
 				WindowFlags.Shown | WindowFlags.Resizable
 			);
-			if (_win.IsNull) throw new Exception("SDL cannot create a window.");
+			if (_win.IsNull) throw new Exception("SDL无法创建窗口。");
 			_ren = SDL.CreateRenderer(_win, -1, RendererFlags.Accelerated);
-			if (_ren.IsNull) throw new Exception("SDL cannot create a renderer.");
+			if (_ren.IsNull) throw new Exception("SDL无法创建渲染器。");
 			SDL.CreateRGBSurface(0, Generator.OutputVideoWidth, Generator.OutputVideoHeight, 32, 0xff, 0xff00, 0xff0000, 0, out _surface);
-			if (_surface.IsNull) throw new Exception("SDL cannot create a surface.");
+			if (_surface.IsNull) throw new Exception("SDL无法创建表面。");
 			_framebuffer = new byte[Generator.OutputVideoWidth * Generator.OutputVideoHeight * 4];
 
 			AudioSpec audioSpec;
@@ -87,7 +87,7 @@ public class SdlExporter : IExporter
 			var tex = SDL.CreateTextureFromSurface(_ren, _surface);
 			if (tex.IsNull)
 			{
-				Logger.Error("Texture is null!");
+				Logger.Error("纹理为空！");
 			}
 			SDL.RenderCopy(_ren, tex, 0, 0);
 
@@ -119,7 +119,7 @@ public class SdlExporter : IExporter
 				fixed (float* audioBufPtr = audioFrame.ToArray())
 				{
 					var ret = SDL.QueueAudio(_audioDeviceId, (byte*)audioBufPtr, audioFrame.TotalSampleCount * sizeof(float));
-					if (ret != 0) Logger.Error($"Cannot queue audio buffer (code {ret}): {SDL.GetError()}");
+					if (ret != 0) Logger.Error($"无法排队音频缓冲区（错误码{ret}）：{SDL.GetError()}");
 				}
 			}
 		}
@@ -169,10 +169,10 @@ public class SdlExporter : IExporter
 
 		if (renderSpeedRatio < 1)
 		{
-			Logger.Warning($"Render too slow! Generator is rendering at {renderSpeedRatio:N2}× speed.");
+			Logger.Warning($"渲染速度过慢！生成器正在以 {renderSpeedRatio:N2} 倍速渲染。");
 		}
 
-		Console.Error.Write($"frame={_frameCount,6} wcframe={wcFrameCount,6} diff={framediff,6} — {(int)deltaFps} fps aqueue={audioQueue}\x1b[K\x1b[G");
+		Console.Error.Write($"帧={_frameCount,6} | 等待帧={wcFrameCount,6} | 差值={framediff,6} - {(int)deltaFps} FPS | 音频队列={audioQueue}\x1b[K\x1b[G");
 	}
 
 	public void Finish()

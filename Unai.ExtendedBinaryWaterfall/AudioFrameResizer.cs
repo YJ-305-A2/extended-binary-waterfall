@@ -53,6 +53,6 @@ public class AudioFrameResizer<T>
 			Array.Copy(input, 0, _outputBuffer, _bufOfs, input.Length);
 			_bufOfs += input.Length;
 		}
-		Logger.Trace($"audio buf status: filled {_bufOfs,4}/{BufferLength,4} {BufferLength - _bufOfs} bytes left");
+		Logger.Trace($"音频缓冲区状态：已填充{_bufOfs,4}/{BufferLength,4}，剩余{BufferLength - _bufOfs}字节");
 	}
 }

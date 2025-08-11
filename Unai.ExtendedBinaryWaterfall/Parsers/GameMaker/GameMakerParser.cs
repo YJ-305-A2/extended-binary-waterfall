@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.GameMaker;
 
-[Parser("gamemaker", "GameMaker Asset Archive", [ ".win", ".unx" ])]
+[Parser("gamemaker", "GameMaker资源归档", [ ".win", ".unx" ])]
 public class GameMakerParser : IParser
 {
 	public Stream InputStream { get; set; }

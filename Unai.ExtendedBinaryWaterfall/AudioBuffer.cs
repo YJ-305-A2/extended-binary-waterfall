@@ -72,14 +72,14 @@ public class AudioBuffer
 				break;
 
 			default:
-				throw new InvalidOperationException("Audio sample format not implemented yet.");
+				throw new InvalidOperationException("音频采样格式尚未实现。");
 		}
 
 		for (int i = 0; i < floatPcmBuffer.Length; i++)
 		{
 			if (i / ChannelCount >= Samples[0].Length)
 			{
-				Logger.Warning($"PCM sample at index {i} does not fit inside sample buffer at index {i / ChannelCount}.");
+				Logger.Warning($"索引 {i} 处的PCM样本无法放入索引 {i / ChannelCount} 处的采样缓冲区中。");
 				return this;
 			}
 			Samples[i % ChannelCount][i / ChannelCount] = floatPcmBuffer[i];

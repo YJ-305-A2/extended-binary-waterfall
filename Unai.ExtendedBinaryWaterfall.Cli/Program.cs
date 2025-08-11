@@ -25,14 +25,14 @@ class Program
 
 		if (args.Length < 1)
 		{
-			Logger.Error("At least one argument must be specified.");
+			Logger.Error("必须指定至少一个参数。");
 			PrintHelp();
 			return;
 		}
 
 		if (!ParseCommandLineArguments(args))
 		{
-			Logger.Fail("Invalid command line arguments. Exiting…");
+			Logger.Fail("命令行参数无效。正在退出…");
 			return;
 		}
 
@@ -49,23 +49,23 @@ class Program
 		}
 		catch (Exception ex)
 		{
-			Logger.Fail($"Unhandled exception while generating binary waterfall: {ex}");
+			Logger.Fail($"生成二进制瀑布时未处理的异常：{ex}");
 		}
 	}
 
 	private static bool ParseCommandLineArguments(IEnumerable<string> args = null)
 	{
-		Logger.Info("Parsing command line arguments…");
+		Logger.Info("解析命令行参数：");
 
 		foreach (var arg in args ?? Environment.GetCommandLineArgs()[1..])
 		{
-			Logger.Debug($"Parsing command line argument: `{arg}`");
+			Logger.Debug($"解析命令行参数：`{arg}`");
 
 			if (!arg.StartsWith('-'))
 			{
 				if (_generator.InputFilePath != null)
 				{
-					Logger.Error("Cannot specify more than two input files.");
+					Logger.Error("无法指定两个以上的输入文件。");
 					return false;
 				}
 				_generator.InputFilePath = arg;
@@ -84,7 +84,7 @@ class Program
 
 			if (targetParam == null)
 			{
-				Logger.Error($"Unknown argument: `{argKvp[0]}`.");
+				Logger.Error($"未知参数：`{argKvp[0]}`");
 				return false;
 			}
 
@@ -103,7 +103,7 @@ class Program
 			}
 			else
 			{
-				Logger.Error($"Cannot set property `{targetParam.Name}` because the instance of its declaring type is unknown.");
+				Logger.Error($"无法设置属性 `{targetParam.Name}`，因为其声明类型的实例未知。");
 				return false;
 			}
 		}
@@ -114,11 +114,11 @@ class Program
 	private static void PrintHelp()
 	{
 		StringBuilder helpStrBld = new();
-		helpStrBld.AppendLine("Usage:");
-		helpStrBld.AppendLine($"	{Path.GetFileName(Environment.GetCommandLineArgs()[0])} <file_input> [options]");
+		helpStrBld.AppendLine("命令格式：");
+		helpStrBld.AppendLine($"	{Path.GetFileName(Environment.GetCommandLineArgs()[0])} <文件输入路径> [选项]");
 		helpStrBld.AppendLine();
-		helpStrBld.AppendLine("Options:");
-		helpStrBld.AppendLine($"	-h, -?, --help\n		Print this help text and exit");
+		helpStrBld.AppendLine("选项：");
+		helpStrBld.AppendLine($"	-h, -?, --help\n		打印此帮助文本并退出");
 
 		void AppendCommandLineArgument(PropertyInfo prop, int indentation = 1)
 		{
@@ -142,7 +142,7 @@ class Program
 		}
 		helpStrBld.AppendLine();
 
-		helpStrBld.AppendLine("Available parsers/input formats:");
+		helpStrBld.AppendLine("可用的解析器/输入格式：");
 		foreach (var parserKvp in Utils.GetTypesWithAttribute<ParserAttribute>())
 		{
 			var parserAttr = parserKvp.Key;
@@ -150,7 +150,7 @@ class Program
 		}
 		helpStrBld.AppendLine();
 
-		helpStrBld.AppendLine("Available exporters:");
+		helpStrBld.AppendLine("可用的导出路径：");
 		foreach (var exporterKvp in Utils.GetTypesWithAttribute<ExporterAttribute>())
 		{
 			var exporterAttr = exporterKvp.Key;
@@ -159,7 +159,7 @@ class Program
 			var cliParams = Utils.GetPropertiesWithAttribute<CliParameterAttribute>(exporterKvp.Value).ToList();
 			if (cliParams.Count > 0)
 			{
-				helpStrBld.AppendLine($"		Options:");
+				helpStrBld.AppendLine($"		选项：");
 				foreach (var cliParam in cliParams)
 				{
 					AppendCommandLineArgument(cliParam, 3);

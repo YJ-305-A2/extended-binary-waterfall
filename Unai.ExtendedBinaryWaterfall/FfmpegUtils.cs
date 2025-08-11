@@ -26,7 +26,7 @@ public static class FfmpegUtils
 
 	public static string GetFfmpegLibraryPath()
 	{
-		Logger.Debug("Guessing FFmpeg library path…");
+		Logger.Debug("正在推测FFmpeg库路径…");
 		IEnumerable<string> ret;
 
 		if (Environment.OSVersion.Platform == PlatformID.Win32NT)
@@ -42,7 +42,7 @@ public static class FfmpegUtils
 				.Where(x => File.Exists($"{x}/libavcodec.so"));
 		}
 		
-		Logger.Debug($"{ret.Count()} detected library paths.");
+		Logger.Debug($"检测到 {ret.Count()} 条库路径。");
 		if (ret.Any())
 		{
 			return ret.FirstOrDefault();
@@ -50,7 +50,7 @@ public static class FfmpegUtils
 
 		if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 		{
-			Logger.Debug("Search via predefined paths failed. Trying PATH environment variable…");
+			Logger.Debug("通过预定义路径搜索失败。正在尝试PATH环境变量…");
 			ret = Environment.GetEnvironmentVariable("PATH")
 				.Split(';')
 				.Where(Directory.Exists)
@@ -62,15 +62,15 @@ public static class FfmpegUtils
 			}
 		}
 
-		Logger.Error("Cannot determine folder path containing FFmpeg libraries.");
+		Logger.Error("无法确定包含FFmpeg库的文件夹路径。");
 		if (Environment.OSVersion.Platform == PlatformID.Win32NT)
 		{
-			Logger.Info("Please enter the following command to install FFmpeg libraries:");
+			Logger.Info("请执行以下命令安装FFmpeg库：");
 			Logger.Info("	winget install \"FFmpeg (Shared)\"");
-			Logger.Info("Once installed, restart the command line.");
-			Logger.Info("Alternatively, you can download the FFmpeg libraries and save them to the following location:");
+			Logger.Info("安装完成后请重启命令行。");
+			Logger.Info("或手动下载FFmpeg库并保存到以下位置：");
 			Logger.Info($"	{_ffmpegSearchPathsWindows[0]}");
-			Logger.Info("Note that these libraries may start with either `libav` or just `av` (e.g: `avcodec-61.dll`).");
+			Logger.Info("注意：这些库文件名可能以 `libav` 或 `av` 开头（例如：`avcodec-61.dll`）。");
 		}
 		return null;
 	}
@@ -81,7 +81,7 @@ public static class FfmpegUtils
 		{
 			byte* errbuf = (byte*)ffmpeg.av_malloc(1024);
 			ffmpeg.av_make_error_string(errbuf, 1024, errorCode);
-			Logger.Error($"FFmpeg error {errorCode}: {message}: {Marshal.PtrToStringUTF8((nint)errbuf)}");
+			Logger.Error($"FFmpeg错误 {errorCode}: {message}: {Marshal.PtrToStringUTF8((nint)errbuf)}");
 			ffmpeg.av_free(errbuf);
 		}
 	}
@@ -98,12 +98,12 @@ public static class FfmpegUtils
 	{
 		if (frame != null)
 		{
-			Logger.Trace($"frm: pts={frame->pts} dur={frame->duration} tb={frame->time_base.num}/{frame->time_base.den}");
+			Logger.Trace($"帧：pts={frame->pts} dur={frame->duration} tb={frame->time_base.num}/{frame->time_base.den}");
 		}
 	}
 
 	public unsafe static void LogPacketData(AVPacket* packet)
 	{
-		Logger.Trace($"pkt: str={packet->stream_index} pts={packet->pts} dts={packet->dts} dur={packet->duration} tb={packet->time_base.num}/{packet->time_base.den}");
+		Logger.Trace($"数据包：str={packet->stream_index} pts={packet->pts} dts={packet->dts} dur={packet->duration} tb={packet->time_base.num}/{packet->time_base.den}");
 	}
 }

@@ -81,7 +81,7 @@ public class MainWindow : Window
 				MessageType.Warning,
 				ButtonsType.Ok,
 				false,
-				"Cannot detect file format.\n\nYou can manually specify a parser if you know the actual file format.\n\nAlternatively, you can use the “unknown format” parser and supply a custom CSV file with the desired subfile listing at the “Custom Subfile Listing File” option.\n\nAs a last resort, you can use the parser mentioned above without any subfile listing at all.");
+				"无法检测文件格式。\n\n您可手动指定解析器（若已知实际文件格式）。\n\n或者，可使用“未知格式”解析器，并通过“Custom Subfile Listing File”（自定义子文件列表文件）选项提供包含所需子文件列表的CSV文件。\n\n如果上述方法均不可行，亦可直接使用上述解析器而不提供任何子文件列表。");
 			msgBox.Run();
 			msgBox.Destroy();
 			_uiParserComboBox.SetActiveId(_nullParserId);

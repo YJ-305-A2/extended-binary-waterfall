@@ -50,7 +50,7 @@ public class WindowsIconEntry
 	}
 }
 
-[Parser("ico", "Windows Icon (ICO)", [ ".ico", ".cur" ])]
+[Parser("ico", "Windows图标（ICO）", [ ".ico", ".cur" ])]
 public class WindowsIconParser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -92,7 +92,7 @@ public class WindowsIconParser : IParser
 			imageEntry.DataSize = br.ReadUInt32();
 			imageEntry.DataOffset = br.ReadUInt32();
 
-			Logger.Debug($"Icon: {imageEntry.Width}×{imageEntry.Height} @{imageEntry.DataOffset:X8} {imageEntry.DataSize}");
+			Logger.Debug($"图标：{imageEntry.Width}×{imageEntry.Height} @{imageEntry.DataOffset:X8} 数据大小{imageEntry.DataSize}字节");
 
 			Entries.Add(imageEntry);
 		}
@@ -109,7 +109,7 @@ public class WindowsIconParser : IParser
 			// var bmCompression = br.ReadUInt32();
 			// var bmSizeOfImage = br.ReadUInt32();
 
-			Logger.Debug($"Icon bitmap info: {bmWidth}×{bmHeight} {bmBitsPerPixel}bpp");
+			Logger.Debug($"图标位图信息：{bmWidth}×{bmHeight} {bmBitsPerPixel}位/像素");
 			
 			br.BaseStream.Position = imageEntry.DataOffset + bmInfoHeaderSize;
 

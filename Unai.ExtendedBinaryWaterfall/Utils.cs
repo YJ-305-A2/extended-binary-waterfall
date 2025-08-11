@@ -177,7 +177,7 @@ public static class Utils
 		switch (ext)
 		{
 			case ".exe" or ".dll" or ".sys" or ".scr" or ".ocx" or ".ax" or ".cpl" or ".mui":
-				Logger.Debug($"Parsing PE executable from subfile '{sf.Path}'…");
+				Logger.Debug($"正在从子文件'{sf.Path}'解析PE可执行文件…");
 				try
 				{
 					target.Position = sf.StartOffset;
@@ -215,7 +215,7 @@ public static class Utils
 							}
 							catch (Exception ex)
 							{
-								Logger.Error($"Cannot set subfile icon from an icon group: {ex.Message}");
+								Logger.Error($"无法从图标组设置子文件图标：{ex.Message}");
 							}
 						}
 					}
@@ -232,7 +232,7 @@ public static class Utils
 				}
 				catch (Exception ex)
 				{
-					Logger.Error($"Cannot parse PE executable: {ex.Message}");
+					Logger.Error($"无法解析PE可执行文件：{ex.Message}");
 				}
 				break;
 			
@@ -246,7 +246,7 @@ public static class Utils
 				}
 				catch (Exception ex)
 				{
-					Logger.Error($"Cannot read image subfile: {ex.Message}");
+					Logger.Error($"无法读取图像子文件：{ex.Message}");
 				}
 				break;
 		}

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.Iso9660;
 
-[Parser("iso9660", "ISO 9660 Disc File System", [ ".iso" ])]
+[Parser("iso9660", "ISO 9660光盘文件系统", [ ".iso" ])]
 public class Iso9660Parser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -39,7 +39,7 @@ public class Iso9660Parser : IParser
 
 	private static IEnumerable<SubFile> TraverseIsoDirectoryEntry(BinaryReader br, IsoDirectoryEntry dir, string parentPath = "", int recursiveCount = 0)
 	{
-		Logger.Debug($"Traversing ISO directory {(string.IsNullOrEmpty(parentPath) ? "/" : parentPath)}");
+		Logger.Debug($"正在遍历ISO目录：{(string.IsNullOrEmpty(parentPath) ? "/" : parentPath)}");
 		if (recursiveCount > 16)
 		{
 			yield break;
@@ -68,7 +68,7 @@ public class Iso9660Parser : IParser
 
 	public IEnumerable<SubFile> GetSubFiles()
 	{
-		yield return new("System Area", 0, 0x8000) { IconString = "🔶" };
+		yield return new("系统区域", 0, 0x8000) { IconString = "🔶" };
 
 		using BinaryReader br = new(InputStream, Encoding.ASCII, true);
 
@@ -78,7 +78,7 @@ public class Iso9660Parser : IParser
 
 		for (int i = 0; i < 16; i++)
 		{
-			Logger.Debug($"Reading volume descriptor {i}…");
+			Logger.Debug($"正在读取卷描述符 {i}…");
 			br.BaseStream.Position = 0x8000 + (2048 * i);
 			var volDesOfs = br.BaseStream.Position;
 
@@ -122,10 +122,10 @@ public class Iso9660Parser : IParser
 
 			string volDesDisplayString = volDesType switch
 			{
-				0 => "Boot Record",
-				1 => "Primary Volume Descriptor",
-				2 => "Secondary Volume Descriptor",
-				_ => $"Volume Descriptor, Type {volDesType:X2}"
+				0 => "启动记录",
+				1 => "主卷描述符",
+				2 => "辅助卷描述符",
+				_ => $"卷描述符，类型 {volDesType:X2}"
 			};
 
 			yield return new(volDesDisplayString, volDesOfs, 2048) { IconString = "🔶" };
@@ -134,7 +134,7 @@ public class Iso9660Parser : IParser
 			if (volDesType == 0xff) break;
 		}
 
-		yield return new("Path Table", pathTableOfs, pathTableSize) { IconString = "🔶" };
+		yield return new("路径表", pathTableOfs, pathTableSize) { IconString = "🔶" };
 
 		var pathTableEntries = new List<IsoPathTableEntry>();
 

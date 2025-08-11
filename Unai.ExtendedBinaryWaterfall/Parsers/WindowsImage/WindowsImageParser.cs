@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.WindowsImage;
 
-[Parser("wim", "Windows Image (WIM)", [ ".wim" ])]
+[Parser("wim", "Windows映像（WIM）", [ ".wim" ])]
 public class WindowsImageParser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -21,7 +21,7 @@ public class WindowsImageParser : IParser
 		return
 		[
 			.. ret,
-			new("WIM File Table", ret.OrderBy(sf => sf.EndOffset).FirstOrDefault().EndOffset, InputStream.Length) { IconString = "🔶" },
+			new("WIM文件表", ret.OrderBy(sf => sf.EndOffset).FirstOrDefault().EndOffset, InputStream.Length) { IconString = "🔶" },
 		];
 	}
 
@@ -47,19 +47,19 @@ public class WindowsImageParser : IParser
 				firstLine = false;
 			}
 			string[] kvp = line.Split(" = ", 2);
-			if (line.StartsWith("Full Path"))
+			if (line.StartsWith("完整路径"))
 			{
 				filePath = kvp[1][1..^1];
 			}
-			else if (line.StartsWith("Uncompressed size"))
+			else if (line.StartsWith("未压缩大小"))
 			{
 				fileSize = long.Parse(kvp[1].Split(' ')[0]);
 			}
-			else if (line.StartsWith("Offset in WIM"))
+			else if (line.StartsWith("在WIM中的偏移"))
 			{
 				fileOffset = long.Parse(kvp[1].Split(' ')[0]);
 			}
-			else if (line.StartsWith("Attributes"))
+			else if (line.StartsWith("属性"))
 			{
 				fileAttrFlags = int.Parse(kvp[1][2..], System.Globalization.NumberStyles.HexNumber);
 			}

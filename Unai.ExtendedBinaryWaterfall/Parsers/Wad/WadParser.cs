@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.Wad;
 
-[Parser("wad", "Doom Engine's Asset Archive (WAD)", [ ".wad" ])]
+[Parser("wad", "毁灭战士引擎资源归档（WAD）", [ ".wad" ])]
 public class WadParser : IParser
 {
 	public static string[] MapLumps =
@@ -35,8 +35,8 @@ public class WadParser : IParser
 		var wadLumpCount = br.ReadUInt32();
 		var wadDirectoryOff = br.ReadUInt32();
 
-		yield return new("WAD Header", 0, 8) { IconString = "🔶" };
-		yield return new("WAD Directory", wadDirectoryOff, br.BaseStream.Length - wadDirectoryOff) { IconString = "🔶" };
+		yield return new("WAD头", 0, 8) { IconString = "🔶" };
+		yield return new("WAD目录", wadDirectoryOff, br.BaseStream.Length - wadDirectoryOff) { IconString = "🔶" };
 
 		br.BaseStream.Position = wadDirectoryOff;
 

@@ -43,8 +43,8 @@ public class CliParameterAttribute : Attribute
 			var ok = Enum.TryParse(targetProp.PropertyType, value, true, out var pval);
 			if (!ok)
 			{
-				Logger.Error($"Cannot parse value '{value}' to enumeration '{targetProp.PropertyType.Name}'.");
-				Logger.Info("Valid values:");
+				Logger.Error($"无法将值 '{value}' 解析为枚举类型 '{targetProp.PropertyType.Name}'。");
+				Logger.Info("有效值：");
 				foreach (var enumVal in Enum.GetValues(targetProp.PropertyType))
 				{
 					Logger.Info($"	{enumVal}");
@@ -59,7 +59,7 @@ public class CliParameterAttribute : Attribute
 		}
 		else
 		{
-			Logger.Error($"Cannot convert string representation of value of property `{targetProp.Name}` because it is not implemented yet.");
+			Logger.Error($"无法转换属性 `{targetProp.Name}` 值的字符串表示形式，因为该功能尚未实现。");
 		}
 		return true;
 	}

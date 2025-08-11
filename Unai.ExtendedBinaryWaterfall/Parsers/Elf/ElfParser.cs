@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.Elf;
 
-[Parser("elf", "Executable and Linkable Format (ELF)", [ ".elf", ".out", ".o", ".so", ".ko", ".mod", ".prx" ])]
+[Parser("elf", "可执行与可链接格式（ELF）", [ ".elf", ".out", ".o", ".so", ".ko", ".mod", ".prx" ])]
 public class ElfParser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -22,7 +22,7 @@ public class ElfParser : IParser
 		var elfEndianness = br.ReadByte(); // 2 = big-endian
 		if (elfEndianness == 2)
 		{
-			Logger.Error($"Cannot parse big-endian ELF file: not supported yet.");
+			Logger.Error($"无法解析大端序ELF文件：暂不支持。");
 			yield break;
 		}
 		var elfVersion = br.ReadByte(); // always 1
@@ -44,7 +44,7 @@ public class ElfParser : IParser
 		var elfShtEntryCount = br.ReadUInt16();
 		var elfShtStringTableIndex = br.ReadUInt16();
 
-		yield return new("ELF Header", 0, br.BaseStream.Position) { IconString = "🔶" };
+		yield return new("ELF头", 0, br.BaseStream.Position) { IconString = "🔶" };
 
 		for (int phIdx = 0; phIdx < elfPhtEntryCount; phIdx++)
 		{
@@ -61,7 +61,7 @@ public class ElfParser : IParser
 			if (!is64Bit) phFlags = br.ReadUInt32();
 			var phAlign = is64Bit ? br.ReadUInt64() : br.ReadUInt32();
 
-			yield return new($"Program Header {phIdx}", phOfs, elfPhtEntrySize) { IconString = "🔶" };
+			yield return new($"程序头{phIdx}", phOfs, elfPhtEntrySize) { IconString = "🔶" };
 		}
 
 		for (int shIdx = 0; shIdx < elfShtEntryCount; shIdx++)
@@ -91,9 +91,9 @@ public class ElfParser : IParser
 		{
 			if (sh.Type == ElfSectionType.Null) continue;
 
-			var name = sh.GetName(br, (long)stringTableSecHdr.SectionOffset) ?? $"Section {sh.Type}";
+			var name = sh.GetName(br, (long)stringTableSecHdr.SectionOffset) ?? $"节区{sh.Type}";
 
-			yield return new($"Section Header {name}", sh.Offset, elfShtEntrySize) { IconString = "🔶" };
+			yield return new($"节区头{name}", sh.Offset, elfShtEntrySize) { IconString = "🔶" };
 			yield return new(name, (long)sh.SectionOffset, (long)sh.SectionSize);
 		}
 	}

@@ -70,7 +70,7 @@ public static class Extensions
 
 		if (!_textRenderCache.TryGetValue(hash, out var cachedTextRender))
 		{
-			Logger.Trace($"Generating cached version of text '{text}'…");
+			Logger.Trace($"正在生成文本 '{text}' 的缓存版本…");
 
 			// Avoiding an `ArgumentNullException` from `TextOptions..ctor`. Blame this line of code:
 			// https://github.com/SixLabors/Fonts/blob/d74f3fae7250cf3a76f43780abea6e15ec40b75e/src/SixLabors.Fonts/TextOptions.cs#L32C66-L32C86
@@ -84,7 +84,7 @@ public static class Extensions
 			};
 
 			var imgBounds = TextMeasurer.MeasureBounds(text, newTextOpts);
-			Logger.Trace($"  Measured raster bounds: {imgBounds}");
+			Logger.Trace($"  测得光栅边界：{imgBounds}");
 			cachedTextRender = new Image<Rgba32>((int)Math.Ceiling(imgBounds.Width + imgBounds.X), (int)Math.Ceiling(imgBounds.Height + imgBounds.Y));
 			cachedTextRender.Mutate(ctx2 => ctx2.DrawText(drawingOptions, newTextOpts, text, brush, pen));
 

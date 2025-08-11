@@ -21,7 +21,7 @@ class MemoryEntry(ulong vaStart, ulong rva, ulong size)
 	public ulong Size = size;
 }
 
-[Parser("minidump", "Windows Memory Dump (Minidump)", [ ".dmp" ])]
+[Parser("minidump", "Windows内存转储（Minidump）", [ ".dmp" ])]
 public class MiniDumpParser : IParser
 {
 	public Stream InputStream { get; set; } = null;
@@ -35,7 +35,7 @@ public class MiniDumpParser : IParser
 		// Prepend the minidump header.
 		return
 		[
-			new("Header", 0, ret.OrderBy(sf => sf.StartOffset).FirstOrDefault().StartOffset) { IconString = "🔶" },
+			new("头", 0, ret.OrderBy(sf => sf.StartOffset).FirstOrDefault().StartOffset) { IconString = "🔶" },
 			.. ret,
 		];
 	}
@@ -123,10 +123,10 @@ public class MiniDumpParser : IParser
 
 		foreach (var memoryRange in memoryRanges)
 		{
-			var ret = new SubFile("Unknown Memory", (long)memoryRange.RVA, (long)memoryRange.Size)
+			var ret = new SubFile("未知内存", (long)memoryRange.RVA, (long)memoryRange.Size)
 			{
 				IconString = "❓",
-				Description = $"Base Address: 0x{memoryRange.VAStart:X16}"
+				Description = $"基地址：0x{memoryRange.VAStart:X16}"
 			};
 			
 			var module = modules.FirstOrDefault(m => Utils.Intersects(m.BaseAddress, m.EndAddress, memoryRange.VAStart, memoryRange.VAStart + memoryRange.Size));

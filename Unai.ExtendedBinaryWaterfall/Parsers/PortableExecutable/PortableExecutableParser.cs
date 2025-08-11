@@ -23,7 +23,7 @@ public enum PeDataDirectory
 	ClrRuntimeHeader,
 }
 
-[Parser("pe", "Portable Executable", [ ".exe", ".dll", ".mui", ".sys", ".scr", ".cpl", ".ocx", ".ax", ".fon", ".efi" ])]
+[Parser("pe", "可移植可执行文件", [ ".exe", ".dll", ".mui", ".sys", ".scr", ".cpl", ".ocx", ".ax", ".fon", ".efi" ])]
 public class PortableExecutableParser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -37,15 +37,15 @@ public class PortableExecutableParser : IParser
 	{
 		using BinaryReader br = new(InputStream, Encoding.ASCII, true);
 
-		yield return new("DOS Header", 0, 0x40);
+		yield return new("DOS头", 0, 0x40);
 
 		var peDosHdrMagic = br.ReadString(2); // "MZ"
 		br.BaseStream.Position = 0x3c;
 		CoffHeaderOffset = br.ReadUInt32();
 		br.BaseStream.Position = CoffHeaderOffset;
 
-		yield return new("DOS Stub", 0x40, CoffHeaderOffset) { IconString = "🔶" };
-		yield return new("COFF Header", CoffHeaderOffset, 0x18) { IconString = "🔶" };
+		yield return new("DOS存根", 0x40, CoffHeaderOffset) { IconString = "🔶" };
+		yield return new("COFF头", CoffHeaderOffset, 0x18) { IconString = "🔶" };
 
 		// PE COFF Header
 		var peMagic = br.ReadString(4); // "PE\0\0"
@@ -56,7 +56,7 @@ public class PortableExecutableParser : IParser
 		var peSymTabCount = br.ReadUInt32(); // unused
 		var peOptionalHeaderSize = br.ReadUInt16();
 		var peFlags = br.ReadUInt16();
-		Logger.Debug($"PE COFF Header: machine {peMachineId:X4}, {peSectionCount} sections");
+		Logger.Debug($"PE COFF头：机器码 {peMachineId:X4}，{peSectionCount} 个节区");
 		bool is64Bit = peMachineId == 0x8664;
 		
 		// PE Optional Header
@@ -93,26 +93,26 @@ public class PortableExecutableParser : IParser
 		var peNtSizeOfHeapCommit = isPe32Plus ? br.ReadUInt64() : br.ReadUInt32();
 		var peNtLoaderFlags = br.ReadUInt32();
 		var peNtRvaSizePairCount = br.ReadUInt32();
-		Logger.Debug($"PE Opt. Header: magic {peOptHdrMagic:X4} code size {peSizeOfCode:X8} entrypoint {peEntryPointOfs:X8}");
-		Logger.Debug($"NT Header: image base {peNtImageBase:X8}, osver {peNtOsVerMajor}.{peNtOsVerMinor}, subsys {peNtSubsystem}, {peNtRvaSizePairCount} dirs");
-		yield return new("COFF Optional Header", CoffOptionalSectionOffset, br.BaseStream.Position - CoffOptionalSectionOffset) { IconString = "🔶" };
+		Logger.Debug($"PE可选头：魔数 {peOptHdrMagic:X4}，代码大小 {peSizeOfCode:X8}，入口点 {peEntryPointOfs:X8}");
+		Logger.Debug($"NT头：映像基址 {peNtImageBase:X8}，系统版本 {peNtOsVerMajor}.{peNtOsVerMinor}，子系统 {peNtSubsystem}，{peNtRvaSizePairCount} 个目录");
+		yield return new("COFF可选头", CoffOptionalSectionOffset, br.BaseStream.Position - CoffOptionalSectionOffset) { IconString = "🔶" };
 
 		// Data Dirs.
 		DataDirectoryTableOffset = br.BaseStream.Position;
-		Logger.Debug("Reading PE data directories…");
+		Logger.Debug("正在读取PE数据目录…");
 		for (int i = 0; i < peNtRvaSizePairCount; i++)
 		{
 			var dataDirRva = br.ReadUInt32();
 			var dataDirSize = br.ReadUInt32();
 			if (dataDirRva != 0)
 			{
-				Logger.Debug($"PE data dir {i,2}: RVA {dataDirRva:X16} Size {dataDirSize}");
+				Logger.Debug($"PE数据目录 {i,2}：RVA {dataDirRva:X16} 大小 {dataDirSize}");
 			}
 		}
-		yield return new("Data Directory Table", DataDirectoryTableOffset, br.BaseStream.Position - DataDirectoryTableOffset) { IconString = "🔶" };
+		yield return new("数据目录表", DataDirectoryTableOffset, br.BaseStream.Position - DataDirectoryTableOffset) { IconString = "🔶" };
 
 		// Sections
-		Logger.Debug("Reading PE section headers…");
+		Logger.Debug("正在读取PE节区头…");
 
 		for (int i = 0; i < peSectionCount; i++)
 		{
@@ -129,7 +129,7 @@ public class PortableExecutableParser : IParser
 			var sectLineNumCount = br.ReadUInt16();
 			var sectFlags = br.ReadUInt32();
 
-			Logger.Debug($"PE Section: {sectName} size {sectSize:X8} vaddr {sectVirtualAddr:X8} data {sectRawDataPtr:X8}:{sectRawDataSize:X8}");
+			Logger.Debug($"PE节区：{sectName} 大小 {sectSize:X8} 虚拟地址 {sectVirtualAddr:X8} 数据 {sectRawDataPtr:X8}:{sectRawDataSize:X8}");
 			yield return new(sectName, (long)sectVirtualAddr, (long)sectSize);
 
 			br.BaseStream.Position = sectOfs + 40;

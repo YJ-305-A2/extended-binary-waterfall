@@ -19,7 +19,7 @@ public class GameMakerChunk
 		var chunkId = br.ReadString(4);
 		uint chunkLen = br.ReadUInt32();
 
-		Logger.Trace($"[{chunkOfs:X8}] chunk {chunkId} size {chunkLen}");
+		Logger.Trace($"[块偏移 {chunkOfs:X8}] 块 {chunkId} 大小 {chunkLen}");
 
 		// TODO: attributes can be used here.
 		string chunkDotNetTypeName = typeof(GameMakerChunk).FullName + chunkId.ToUpper()[0] + chunkId.ToLower()[1..];

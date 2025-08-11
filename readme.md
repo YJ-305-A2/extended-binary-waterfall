@@ -1,3 +1,7 @@
+# Language
+- [English](readme.md)
+- [Chinese (Simplified)](readme_chs.md)
+
 # Extended Binary Waterfall
 ![GitHub Tag](https://img.shields.io/github/v/tag/unai-d/extended-binary-waterfall?style=flat-square&label=latest%20tag)
 

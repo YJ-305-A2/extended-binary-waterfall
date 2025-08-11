@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace Unai.ExtendedBinaryWaterfall.Exporters;
 
-[Exporter("ffmpeg", "FFmpeg Stream", "Use FFmpeg libraries to encode audio and video data and output it in Matroska format.")]
+[Exporter("ffmpeg", "FFmpeg流", "使用FFmpeg库编码音视频数据并以Matroska格式输出")]
 public class FfmpegExporter : IExporter
 {
 	private bool _init = false;
@@ -31,14 +31,14 @@ public class FfmpegExporter : IExporter
 	private int _frameNum = 0;
 
 	public Generator Generator { get; set; }
-	
+
 	#region User-defined properties
 
-	[CliParameter("FFmpeg Log Level", "ffloglevel")]
+	[CliParameter("FFmpeg日志级别", "ffloglevel")]
 	public int LogLevel { get; set; } = ffmpeg.AV_LOG_INFO;
 	// [CliParameter("Output Video File Path", "output", 'o')]
 	// public string OutputPath { get; set; } = null;
-	[CliParameter("Output Video Bitrate", "output-bitrate")]
+	[CliParameter("输出视频比特率", "output-bitrate")]
 	public uint OutputVideoBitRate { get; set; } = 9_000_000;
 
 	#endregion
@@ -48,8 +48,8 @@ public class FfmpegExporter : IExporter
 		unsafe
 		{
 			ffmpeg.RootPath = FfmpegUtils.GetFfmpegLibraryPath();
-			Logger.Debug($"FFmpeg library path: '{ffmpeg.RootPath}'.");
-			
+			Logger.Debug($"FFmpeg库路径：'{ffmpeg.RootPath}'");
+
 			ffmpeg.av_log_set_level(LogLevel);
 			av_log_set_callback_callback logCb = (p0, level, format, v1) =>
 			{
@@ -69,12 +69,12 @@ public class FfmpegExporter : IExporter
 			{
 				AVFormatContext* fmtCtx = null;
 				ffmpeg.avformat_alloc_output_context2(&fmtCtx, null, "matroska", Generator.OutputFilePath ?? "/dev/stdout");
-				if (fmtCtx == null) Console.Error.WriteLine("cannot allocate AVFormatContext");
+				if (fmtCtx == null) Console.Error.WriteLine("无法分配AVFormatContext");
 				_fmtCtx = fmtCtx;
 			}
 			if ((_fmtCtx->oformat->flags & ffmpeg.AVFMT_GLOBALHEADER) != 0)
 			{
-				Logger.Debug("Format requested global stream headers.");
+				Logger.Debug("格式要求全局流头信息");
 			}
 
 			// encoders
@@ -110,7 +110,7 @@ public class FfmpegExporter : IExporter
 			}
 			AVDictionary* videoEncOpts;
 			var ret = ffmpeg.avcodec_open2(_videoCtx, videoEnc, &videoEncOpts);
-			FfmpegUtils.LogIfAvError(ret, "cannot open video codec");
+			FfmpegUtils.LogIfAvError(ret, "无法打开视频编码器");
 
 			_audioCtx = ffmpeg.avcodec_alloc_context3(audioEnc);
 			_audioCtx->codec_type = AVMediaType.AVMEDIA_TYPE_AUDIO;
@@ -129,40 +129,40 @@ public class FfmpegExporter : IExporter
 				_audioCtx->flags |= ffmpeg.AV_CODEC_FLAG_GLOBAL_HEADER;
 			}
 			ret = ffmpeg.avcodec_open2(_audioCtx, audioEnc, null);
-			FfmpegUtils.LogIfAvError(ret, "cannot open audio codec");
+			FfmpegUtils.LogIfAvError(ret, "无法打开视频编码器");
 
 			// streams
 			// =======
 
 			_videoStream = ffmpeg.avformat_new_stream(_fmtCtx, null);
-			if (_videoStream == null) Logger.Error("cannot allocate video output stream");
+			if (_videoStream == null) Logger.Error("无法分配视频输出流");
 			_videoStream->index = (int)(_fmtCtx->nb_streams - 1);
 			_videoStream->time_base = _videoCtx->time_base;
 			_videoStream->r_frame_rate = videoFps;
 
 			ret = ffmpeg.avcodec_parameters_from_context(_videoStream->codecpar, _videoCtx);
-			FfmpegUtils.LogIfAvError(ret, "cannot set video codec params from codec context");
+			FfmpegUtils.LogIfAvError(ret, "无法从编码器上下文设置视频编解码参数");
 
 			_audioStream = ffmpeg.avformat_new_stream(_fmtCtx, null);
-			if (_videoStream == null) Logger.Error("cannot allocate audio output stream");
+			if (_videoStream == null) Logger.Error("无法分配音频输出流");
 			_audioStream->index = (int)(_fmtCtx->nb_streams - 1);
 			_audioStream->time_base = FfmpegUtils.GetRational(1, _audioCtx->sample_rate);
-			
+
 			ret = ffmpeg.avcodec_parameters_from_context(_audioStream->codecpar, _audioCtx);
-			FfmpegUtils.LogIfAvError(ret, "cannot set audio codec params from codec context");
+			FfmpegUtils.LogIfAvError(ret, "无法从编码器上下文设置音频编解码参数");
 			if (_audioStream->codecpar->extradata == null)
 			{
-				Logger.Error("audio codec did not create extradata buffer");
+				Logger.Error("音频编码器未创建extradata缓冲区");
 			}
 
 			// output file/stream
 			// ==================
 
 			ret = ffmpeg.avio_open(&_fmtCtx->pb, Generator.OutputFilePath ?? "pipe:", Generator.OutputFilePath != null ? ffmpeg.AVIO_FLAG_READ_WRITE : ffmpeg.AVIO_FLAG_WRITE);
-			FfmpegUtils.LogIfAvError(ret, "cannot open stdout");
+			FfmpegUtils.LogIfAvError(ret, "无法打开标准输出");
 			AVDictionary* fmtOpts;
 			ret = ffmpeg.avformat_write_header(_fmtCtx, &fmtOpts);
-			FfmpegUtils.LogIfAvError(ret, "cannot write header");
+			FfmpegUtils.LogIfAvError(ret, "无法写入头信息");
 
 			byte* dictBuf = (byte*)ffmpeg.av_malloc(1024);
 			ffmpeg.av_dict_get_string(fmtOpts, &dictBuf, (byte)'=', (byte)':');
@@ -177,7 +177,7 @@ public class FfmpegExporter : IExporter
 			_videoAvFrame->time_base = _videoStream->time_base;
 
 			ret = ffmpeg.av_frame_get_buffer(_videoAvFrame, 0);
-			FfmpegUtils.LogIfAvError(ret, "cannot allocate video pixel buffer");
+			FfmpegUtils.LogIfAvError(ret, "无法分配视频像素缓冲区");
 
 			_videoAvFramePre = ffmpeg.av_frame_alloc();
 			_videoAvFramePre->format = (int)AVPixelFormat.AV_PIX_FMT_RGBA;
@@ -186,7 +186,7 @@ public class FfmpegExporter : IExporter
 			_videoAvFramePre->time_base = _videoStream->time_base;
 
 			ret = ffmpeg.av_frame_get_buffer(_videoAvFramePre, 0);
-			FfmpegUtils.LogIfAvError(ret, "cannot allocate video pixel buffer");
+			FfmpegUtils.LogIfAvError(ret, "无法分配视频像素缓冲区");
 
 			// audio frames
 			// ============
@@ -203,11 +203,11 @@ public class FfmpegExporter : IExporter
 
 			if ((_audioCtx->codec->capabilities & ffmpeg.AV_CODEC_CAP_VARIABLE_FRAME_SIZE) == 0)
 			{
-				Logger.Warning("audio codec does not support variable frame size");
+				Logger.Warning("音频编码器不支持可变帧大小");
 			}
 
 			ret = ffmpeg.av_frame_get_buffer(_audioAvFrame, 0);
-			FfmpegUtils.LogIfAvError(ret, "cannot allocate audio sample buffer");
+			FfmpegUtils.LogIfAvError(ret, "无法分配音频采样缓冲区");
 			_audioQueue.BufferLength = _audioAvFrame->nb_samples * _audioAvFrame->ch_layout.nb_channels;
 			_audioQueue.OutputCallback = (buf) =>
 			{
@@ -221,11 +221,11 @@ public class FfmpegExporter : IExporter
 				DoEncode(_audioCtx, _audioStream, _audioAvFrame, _audioAvPacket);
 			};
 
-			Logger.Debug($"video original linesize = {_videoAvFramePre->linesize[0]} {_videoAvFramePre->linesize[1]}");
-			Logger.Debug($"video target linesize =   {_videoAvFrame->linesize[0]} {_videoAvFrame->linesize[1]} {_videoAvFrame->linesize[2]}");
-			Logger.Debug($"req. audio frame size =   {_audioCtx->frame_size} * {_audioCtx->ch_layout.nb_channels}ch");
-			Logger.Debug($"audio ch layout =         {_audioAvFrame->ch_layout.nb_channels} {_audioAvFrame->ch_layout.order} {_audioAvFrame->ch_layout.u.mask}");
-			Logger.Debug($"audio linesizes =         {_audioAvFrame->linesize[0]} {_audioAvFrame->linesize[1]} {_audioAvFrame->linesize[2]} {_audioAvFrame->linesize[3]} {_audioAvFrame->linesize[4]} {_audioAvFrame->linesize[5]} {_audioAvFrame->linesize[6]} {_audioAvFrame->linesize[7]}");
+			Logger.Debug($"视频原始行大小 = {_videoAvFramePre->linesize[0]} {_videoAvFramePre->linesize[1]}");
+			Logger.Debug($"视频目标行大小 = {_videoAvFrame->linesize[0]} {_videoAvFrame->linesize[1]} {_videoAvFrame->linesize[2]}");
+			Logger.Debug($"所需音频帧大小 = {_audioCtx->frame_size} * {_audioCtx->ch_layout.nb_channels}声道");
+			Logger.Debug($"音频声道布局 =   {_audioAvFrame->ch_layout.nb_channels}声道 {_audioAvFrame->ch_layout.order}顺序 掩码{_audioAvFrame->ch_layout.u.mask}");
+			Logger.Debug($"音频行大小 =     {_audioAvFrame->linesize[0]} {_audioAvFrame->linesize[1]} {_audioAvFrame->linesize[2]} {_audioAvFrame->linesize[3]} {_audioAvFrame->linesize[4]} {_audioAvFrame->linesize[5]} {_audioAvFrame->linesize[6]} {_audioAvFrame->linesize[7]}");
 
 			_videoAvPacket = ffmpeg.av_packet_alloc();
 			_audioAvPacket = ffmpeg.av_packet_alloc();
@@ -242,7 +242,7 @@ public class FfmpegExporter : IExporter
 		FfmpegUtils.LogFrameData(frame);
 
 		ret = ffmpeg.avcodec_send_frame(cCtx, frame);
-		FfmpegUtils.LogIfAvError(ret, "cannot send frame to encoder");
+		FfmpegUtils.LogIfAvError(ret, "无法发送帧到编码器");
 
 		while (ret >= 0)
 		{
@@ -257,7 +257,7 @@ public class FfmpegExporter : IExporter
 				// if frame is null, `EOF` code is expected, don't treat it as an error.
 				if (frame != null)
 				{
-					FfmpegUtils.LogIfAvError(ret, "cannot encode");
+					FfmpegUtils.LogIfAvError(ret, "无法编码");
 				}
 				break;
 			}
@@ -269,7 +269,7 @@ public class FfmpegExporter : IExporter
 			FfmpegUtils.LogPacketData(packet);
 
 			ret = ffmpeg.av_interleaved_write_frame(_fmtCtx, packet);
-			FfmpegUtils.LogIfAvError(ret, "cannot write packet");
+			FfmpegUtils.LogIfAvError(ret, "无法写入数据包");
 			if (ret == -32) Generator._exitRequested = true;
 		}
 	}
@@ -287,9 +287,9 @@ public class FfmpegExporter : IExporter
 		}
 
 		var ret = ffmpeg.av_frame_make_writable(_videoAvFrame);
-		FfmpegUtils.LogIfAvError(ret, "cannot make video pixel data writable");
+		FfmpegUtils.LogIfAvError(ret, "无法使视频像素数据可写");
 		ret = ffmpeg.av_frame_make_writable(_audioAvFrame);
-		FfmpegUtils.LogIfAvError(ret, "cannot make audio sample buffer writable");
+		FfmpegUtils.LogIfAvError(ret, "无法使音频采样缓冲区可写");
 
 		_audioAvFrame->pts = (long)(_audioAvFrame->sample_rate * (_frameNum / (float)Generator.OutputFps));
 		_audioAvFrame->duration = Generator.AudioOutputSamplesPerFrame;
@@ -300,7 +300,7 @@ public class FfmpegExporter : IExporter
 			_swsCtx = ffmpeg.sws_getContext(videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFramePre->format, videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFrame->format, ffmpeg.SWS_BILINEAR, null, null, null);
 			if (_swsCtx == null)
 			{
-				Logger.Error("cannot initialize sws context");
+				Logger.Error("无法初始化sws上下文");
 			}
 		}
 
@@ -342,7 +342,7 @@ public class FfmpegExporter : IExporter
 
 		if (_frameNum % 10 == 0)
 		{
-			Logger.Trace($"frame {_frameNum}, ts {_frameNum / Generator.OutputFps}, framegen speed {(int)(1/delta)} fps\x1b[K\x1b[G");
+			Logger.Trace($"帧 {_frameNum}，时间戳 {_frameNum / Generator.OutputFps}，生成速度 {(int)(1 / delta)}FPS\x1b[K\x1b[G");
 		}
 
 		_frameNum++;
@@ -350,11 +350,11 @@ public class FfmpegExporter : IExporter
 
 	public unsafe void Finish()
 	{
-		Logger.Debug("Flushing streams…");
+		Logger.Debug("正在刷新流…");
 		DoEncode(_videoCtx, _videoStream, null, _videoAvPacket);
 		DoEncode(_audioCtx, _audioStream, null, _audioAvPacket);
 
-		Logger.Debug("Freeing FFmpeg resources…");
+		Logger.Debug("正在释放FFmpeg资源…");
 		ffmpeg.sws_freeContext(_swsCtx);
 		var videoCtx = _videoCtx;
 		ffmpeg.avcodec_free_context(&videoCtx);

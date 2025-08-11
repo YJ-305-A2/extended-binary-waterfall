@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.Zip;
 
-[Parser("zip", "ZIP Archive", [ ".zip", ".apk", ".msix", ".epub", ".jar", ".war", ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp", ".pk3", ".pk4" ])]
+[Parser("zip", "ZIP归档文件", [ ".zip", ".apk", ".msix", ".epub", ".jar", ".war", ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp", ".pk3", ".pk4" ])]
 public class ZipParser : IParser
 {
 	public Stream InputStream { get; set; }
@@ -33,7 +33,7 @@ public class ZipParser : IParser
 
 		if (EocdOffset == 0)
 		{
-			Logger.Error("Cannot parse ZIP file: cannot find EOCD signature.");
+			Logger.Error("无法解析ZIP文件：未找到EOCD（中央目录结束）签名。");
 			yield break;
 		}
 
@@ -48,8 +48,8 @@ public class ZipParser : IParser
 
 		CentralDirectoryOffset = eocdCdirStart;
 
-		yield return new("End of Central Directory", EocdOffset, 22 + eocdCommentSize) { IconString = "🔶" };
-		yield return new("Central Directory", eocdCdirStart, eocdCdirSize) { IconString = "🔶" };
+		yield return new("中央目录结束", EocdOffset, 22 + eocdCommentSize) { IconString = "🔶" };
+		yield return new("中央目录", eocdCdirStart, eocdCdirSize) { IconString = "🔶" };
 
 		// Central Directory
 		br.BaseStream.Position = CentralDirectoryOffset;
@@ -60,7 +60,7 @@ public class ZipParser : IParser
 			var cdirSig = br.ReadUInt32(); // 0x02014b50 / "PK\1\2"
 			if (cdirSig != 0x02014b50)
 			{
-				Logger.Error($"Cannot read central directory record: invalid signature ({cdirSig:X8})");
+				Logger.Error($"无法读取中央目录记录：签名无效（{cdirSig:X8}）");
 				break;
 			}
 
@@ -85,7 +85,7 @@ public class ZipParser : IParser
 
 			var cdirNextOfs = br.BaseStream.Position;
 
-			Logger.Debug($"Dir. Rec at 0x{cdirOfs:X8}: '{cdirFileName}' {cdirCompressedSize} bytes (uncomp. {cdirUncompressedSize})");
+			Logger.Debug($"位于 0x{cdirOfs:X8} 的目录记录：'{cdirFileName}' {cdirCompressedSize}字节（未压缩大小 {cdirUncompressedSize}）");
 
 			// Local File Header
 			br.BaseStream.Position = cdirLocalFileHdrOfs;

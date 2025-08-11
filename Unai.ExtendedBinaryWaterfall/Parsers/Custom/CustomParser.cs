@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Unai.ExtendedBinaryWaterfall.Parsers.Custom;
 
-[Parser("custom", "Unknown Format, Custom File Listing", [])]
+[Parser("custom", "未知格式，自定义文件列表", [])]
 public class CustomParser : IParser
 {
 	public Stream InputStream { get; set; }

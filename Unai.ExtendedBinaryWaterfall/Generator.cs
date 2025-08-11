@@ -68,23 +68,23 @@ public class Generator
 	#region General Parameters
 
 	public string InputFilePath { get; set; } = null;
-	[CliParameter("Input File Listing File Path", "file-listing", "Set the file path that contains a text-based file listing if the input file format cannot be parsed entirely by this program")]
+	[CliParameter("输入文件列表文件路径", "file-listing", "当输入文件格式无法被本程序完全解析时，设置包含文本格式文件列表的文件路径")]
 	public string InputAuxiliaryFilePath { get; set; } = null;
-	[CliParameter("Output File Path", "output", 'o', "Set the output video file path")]
+	[CliParameter("输出文件路径", "output", 'o', "设置输出视频文件路径")]
 	public string OutputFilePath { get; set; } = null;
-	[CliParameter("Title", "title", 't', "Set the title that will be shown during the binary waterfall describing the target file")]
+	[CliParameter("标题", "title", 't', "设置二进制瀑布图中显示的目标文件标题")]
 	public string Title { get; set; } = null;
-	[CliParameter("Author", "author", 'a', "Set the author of the generated binary waterfall")]
+	[CliParameter("作者", "author", 'a', "设置生成该二进制瀑布的作者")]
 	public string Author { get; set; } = null;
-	[CliParameter("Input File Parser", "parser", 'p', "Force a specific parser for the input file")]
+	[CliParameter("输入文件解析器", "parser", 'p', "强制指定输入文件的解析器")]
 	public string InputFileFormatId { get; set; } = null;
-	[CliParameter("Exporter", "exporter", 'e', "Set the exporter to be used to export the generated binary waterfall")]
+	[CliParameter("导出器", "exporter", 'e', "设置用于导出生成的二进制瀑布图的导出器")]
 	public string ExporterId { get; set; } = null;
-	[CliParameter("Input Bytes per Second", "input-bps", "Set the amount of bytes that will be read per audio/video second")]
+	[CliParameter("输入字节/秒", "input-bps", "设置每秒读取的字节数（基于音频/视频时长）")]
 	public int InputBytesPerSecond { get; set; } = 48000 * 2;
-	[CliParameter("Font Name", "font", "Set the font name to render the on-screen text")]
+	[CliParameter("字体名称", "font", "设置屏幕文本渲染的字体名称")]
 	public string FontName { get; set; } = null;
-	[CliParameter("Font Antialiasing", "font-antialiasing")]
+	[CliParameter("字体抗锯齿", "font-antialiasing")]
 	public bool FontAntialiasing { get => _drawOpts.GraphicsOptions.Antialias; set => _drawOpts.GraphicsOptions.Antialias = value; }
 
 	#endregion
@@ -93,17 +93,17 @@ public class Generator
 
 	#region Video Parameters
 
-	[CliParameter("Output Video Width", "output-width")]
+	[CliParameter("输出视频宽度", "output-width")]
 	public int OutputVideoWidth { get; set; } = 1920;
-	[CliParameter("Output Video Height", "output-height")]
+	[CliParameter("输出视频高度", "output-height")]
 	public int OutputVideoHeight { get; set; } = 1080;
-	[CliParameter("Output Framerate", "output-fps")]
+	[CliParameter("输出帧率", "output-fps")]
 	public int OutputFps { get; set; } = 60;
 	public int WaterfallScaledWidth { get; set; } = 768;
 	public int WaterfallScaledHeight { get; set; } = 768;
-	[CliParameter("Input Video Width", "input-width")]
+	[CliParameter("输入视频宽度", "input-width")]
 	public int WaterfallWidth { get; set; } = 256;
-	[CliParameter("Input Video Height", "input-height")]
+	[CliParameter("输入视频高度", "input-height")]
 	public int WaterfallHeight { get; set; } = 256;
 	public int WaterfallFrameLength => WaterfallWidth * WaterfallHeight * 4;
 
@@ -111,20 +111,20 @@ public class Generator
 
 	#region Audio Parameters
 
-	[CliParameter("Input Sample Format", "sample-format")]
+	[CliParameter("输入采样格式", "sample-format")]
 	public AudioSampleFormat AudioInputSampleFormat { get; set; } = AudioSampleFormat.Unsigned8;
-	[CliParameter("Input Audio Channel Count", "channel-count")]
+	[CliParameter("输入音频声道数", "channel-count")]
 	public int AudioInputChannelCount { get; set; } = 2;
 	public int AudioInputSamplesPerFrame => InputBytesPerFrame / AudioInputSampleFormat.GetByteSize();
 	public int AudioInputSamplesPerFramePerChannel => AudioInputSamplesPerFrame / AudioInputChannelCount;
 	public int AudioInputSampleRate => (InputBytesPerSecond / AudioInputSampleFormat.GetByteSize()) / AudioInputChannelCount;
 	public int AudioInputBytesPerFrame => InputBytesPerFrame;
 
-	[CliParameter("Output Sample Format", "output-sample-format")]
+	[CliParameter("输出采样格式", "output-sample-format")]
 	public AudioSampleFormat AudioOutputSampleFormat { get; set; } = AudioSampleFormat.Float32;
-	[CliParameter("Output Audio Channel Count", "output-channel-count")]
+	[CliParameter("输出音频声道数", "output-channel-count")]
 	public int AudioOutputChannelCount { get; set; } = 2;
-	[CliParameter("Output Sample Rate", "output-sample-rate")]
+	[CliParameter("输出采样率", "output-sample-rate")]
 	public int AudioOutputSampleRate { get; set; } = 48000;
 	public int AudioOutputSamplesPerFramePerChannel => AudioOutputSampleRate / OutputFps;
 	public int AudioOutputSamplesPerFrame => AudioOutputSamplesPerFramePerChannel * AudioOutputChannelCount;
@@ -144,7 +144,7 @@ public class Generator
 	{
 		if (InputFileStream == null)
 		{
-			Logger.Info("Opening files…");
+			Logger.Info("正在打开文件…");
 			InputFileStream = File.OpenRead(InputFilePath);
 		}
 
@@ -164,7 +164,7 @@ public class Generator
 
 		InitializeFonts();
 
-		Logger.Info("Preparing audio/video generation…");
+		Logger.Info("正在准备生成音频/视频...");
 
 		UpdateValues();
 
@@ -184,20 +184,20 @@ public class Generator
 	[Conditional("DEBUG")]
 	private void LogGeneratorStatus()
 	{
-		Logger.Debug($"Selected parser: {Parser?.GetType().GetCustomAttribute<ParserAttribute>()?.Name ?? "<null>"}");
-		Logger.Debug($"Selected exporter: {Exporter?.GetType().GetCustomAttribute<ExporterAttribute>()?.Name ?? "<null>"}");
-		Logger.Debug($"Selected font: {_fontFamily.Name ?? "<null>"}");
-		Logger.Debug($"Read speed: {InputBytesPerFrame} bytes/frame ({InputBytesPerSecond} bytes/second)");
-		Logger.Debug($"Waterfall duration will be around {TimeSpan.FromSeconds(InputFileStream.Length / InputBytesPerSecond)}.");
-		Logger.Debug($"Video input:  {WaterfallWidth}×{WaterfallHeight}");
-		Logger.Debug($"Audio input:  {AudioInputBytesPerFrame}bpf {AudioInputSamplesPerFrame}spf → {AudioInputSampleRate}Hz {AudioInputChannelCount}ch {8 * AudioInputSampleFormat.GetByteSize()}-bit");
-		Logger.Debug($"Audio output: {AudioOutputBytesPerFrame}bpf {AudioOutputSamplesPerFrame}spf → {AudioOutputSampleRate}Hz {AudioOutputChannelCount}ch {8 * AudioOutputSampleFormat.GetByteSize()}-bit");
+		Logger.Debug($"已选解析器：{Parser?.GetType().GetCustomAttribute<ParserAttribute>()?.Name ?? "<null>"}");
+		Logger.Debug($"已选导出器：{Exporter?.GetType().GetCustomAttribute<ExporterAttribute>()?.Name ?? "<null>"}");
+		Logger.Debug($"已选字体：{_fontFamily.Name ?? "<null>"}");
+		Logger.Debug($"读取速度：{InputBytesPerFrame}字节/帧 ({InputBytesPerSecond}字节/秒)");
+		Logger.Debug($"瀑布图时长约为 {TimeSpan.FromSeconds(InputFileStream.Length / InputBytesPerSecond)}");
+		Logger.Debug($"视频输入：{WaterfallWidth}×{WaterfallHeight}");
+		Logger.Debug($"音频输入：{AudioInputBytesPerFrame}字节/帧 {AudioInputSamplesPerFrame}样本/帧 → {AudioInputSampleRate}Hz {AudioInputChannelCount}声道 {8 * AudioInputSampleFormat.GetByteSize()}位");
+		Logger.Debug($"音频输出：{AudioOutputBytesPerFrame}字节/帧 {AudioOutputSamplesPerFrame}样本/帧 → {AudioOutputSampleRate}Hz {AudioOutputChannelCount}声道 {8 * AudioOutputSampleFormat.GetByteSize()}位");
 	}
 
 	private void InitializeFonts()
 	{
-		Logger.Info("Loading fonts…");
-		Logger.Debug($"Requested font: '{FontName}'.");
+		Logger.Info("正在加载字体…");
+		Logger.Debug($"请求的字体：'{FontName}'");
 
 		if (_fontCollection == null)
 		{
@@ -210,7 +210,7 @@ public class Generator
 			// Try getting the font by the font name specified by the user
 			if (!_fontCollection.TryGet(FontName, out _fontFamily))
 			{
-				Logger.Error($"Cannot find font '{FontName}'.");
+				Logger.Error($"找不到字体 '{FontName}'.");
 			}
 		}
 
@@ -234,8 +234,8 @@ public class Generator
 
 	private void InitializeExporter()
 	{
-		Logger.Info("Setting up exporter…");
-		Logger.Debug($"Requested exporter: '{ExporterId}'.");
+		Logger.Info("正在初始化导出器…");
+		Logger.Debug($"请求的导出器：'{ExporterId}'");
 
 		if (ExporterId != null)
 		{
@@ -251,13 +251,13 @@ public class Generator
 			}
 			if (Exporter == null)
 			{
-				Logger.Fail($"Unknown exporter ID: '{ExporterId}'.");
+				Logger.Fail($"未知导出器ID：'{ExporterId}'");
 				return;
 			}
 		}
 		else
 		{
-			Logger.Debug("No exporter requested. Using SDL…");
+			Logger.Debug("未指定导出器。将使用SDL…");
 			Exporter = new SdlExporter();
 		}
 
@@ -265,7 +265,7 @@ public class Generator
 
 		if (AdditionalCliArguments.Count > 0)
 		{
-			Logger.Info($"Setting exporter properties from command line arguments…");
+			Logger.Info($"正在通过命令行参数设置导出器属性…");
 			foreach (var argKvp in AdditionalCliArguments)
 			{
 				var targetProp = Utils.GetPropertyFromCliArgument(argKvp.Key);
@@ -276,7 +276,7 @@ public class Generator
 				}
 				else
 				{
-					Logger.Error($"Unrecognized CLI argument name: '{argKvp.Key}'.");
+					Logger.Error($"无法识别的CLI参数名称：'{argKvp.Key}'");
 				}
 			}
 		}
@@ -288,7 +288,7 @@ public class Generator
 
 		if (Parser != null)
 		{
-			Logger.Info("Parsing subfiles…");
+			Logger.Info("正在解析子文件…");
 
 			Parser.InputStream = InputFileStream;
 			Parser.AuxiliaryInputStream = InputAuxiliaryFileStream;
@@ -302,7 +302,7 @@ public class Generator
 			];
 		}
 
-		Logger.Debug($"Total number of subfiles: {_subfiles.Count}");
+		Logger.Debug($"子文件总数：{_subfiles.Count}");
 
 		if (LogAllSubfiles)
 		{
@@ -315,12 +315,12 @@ public class Generator
 
 	private void InitializeParser()
 	{
-		Logger.Info("Setting up parser…");
+		Logger.Info("正在初始化解析器…");
 		var availableParsers = Utils.GetTypesWithAttribute<ParserAttribute>();
 
 		if (InputFileFormatId != null)
 		{
-			Logger.Debug($"Requested parser: '{InputFileFormatId}'.");
+			Logger.Debug($"请求的解析器：'{InputFileFormatId}'");
 			foreach (var parserKvp in availableParsers)
 			{
 				var parserAttr = parserKvp.Key;
@@ -332,12 +332,12 @@ public class Generator
 			}
 			if (Parser == null)
 			{
-				Logger.Warning($"Unknown parser ID: '{InputFileFormatId}'. Skipping subfile listing.");
+				Logger.Warning($"未知解析器ID：'{InputFileFormatId}'。跳过子文件列表生成。");
 			}
 		}
 		else
 		{
-			Logger.Info("Guessing input format from file extension…");
+			Logger.Info("正在根据文件扩展名推测输入格式…");
 			var inputFileExt = Path.GetExtension(InputFilePath).ToLower();
 
 			foreach (var parserKvp in availableParsers)
@@ -345,14 +345,14 @@ public class Generator
 				var parserAttr = parserKvp.Key;
 				if (parserAttr.FileExtensions.Contains(inputFileExt))
 				{
-					Logger.Debug($"Parser '{parserAttr.Id}' recognizes '{inputFileExt}' as a valid file extension.");
+					Logger.Debug($"解析器 '{parserAttr.Id}' 识别到 '{inputFileExt}' 为有效文件扩展名");
 					Parser = (IParser)Activator.CreateInstance(parserKvp.Value);
 					break;
 				}
 			}
 			if (Parser == null)
 			{
-				Logger.Warning($"Unknown input format. Skipping subfile listing.");
+				Logger.Warning($"未知输入格式。跳过子文件列表生成。");
 			}
 		}
 	}
@@ -398,7 +398,7 @@ public class Generator
 
 	private void GenerateIntro()
 	{
-		Logger.Info("Generating introduction…");
+		Logger.Info("正在生成简介…");
 
 		var totalFrames = 5 * OutputFps; // 60FPS = 300
 
@@ -412,12 +412,12 @@ public class Generator
 					Origin = new Vector2(OutputVideoWidth / 2, OutputVideoHeight / 2),
 					HorizontalAlignment = HorizontalAlignment.Center,
 					TextAlignment = TextAlignment.Center,
-				}, "DISCLAIMER\n\nThis video contains\nhigh speed flashing lights\nand loud noises", Color.White)
+				}, "免责声明\n\n本视频包含\n高速闪烁的画面\n以及巨大噪音", Color.White)
 				.DrawText(new RichTextOptions(_font24)
 				{
 					Origin = new Vector2(OutputVideoWidth / 2, OutputVideoHeight - 128),
 					HorizontalAlignment = HorizontalAlignment.Center,
-				}, $"Starting in {(totalFrames - frameNumber) / (float)OutputFps:N1} seconds…", Color.White)
+				}, $"将在 {(totalFrames - frameNumber) / (float)OutputFps:N1} 秒后开始…", Color.White)
 				.DrawProgressBar(frameNumber / (float)totalFrames, (int)(OutputVideoWidth * 0.3), (int)(OutputVideoWidth * 0.7), OutputVideoHeight - 64));
 
 			Exporter.PushNewFrame(_frameContent, _outputAudioBuffer, _timer.Elapsed.TotalSeconds);
@@ -434,9 +434,9 @@ public class Generator
 
 	private void GenerateMainVideo()
 	{
-		Logger.Info("Generating binary waterfall…");
+		Logger.Info("正在生成二进制瀑布图…");
 
-		string avSettingsString = $"{AudioInputSampleRate} Hz, PCM {(AudioInputSampleFormat.IsSigned() ? "signed" : "unsigned")} {8 * AudioInputSampleFormat.GetByteSize()}-bit, {(AudioInputChannelCount == 2 ? "stereo" : "mono")}\nRGBA (32bpp), {WaterfallWidth} px/line";
+		string avSettingsString = $"{AudioInputSampleRate}Hz, PCM{(AudioInputSampleFormat.IsSigned() ? "有符号" : "无符号")} {8 * AudioInputSampleFormat.GetByteSize()}位, {(AudioInputChannelCount == 2 ? "立体声" : "单声道")}\nRGBA (32bpp), {WaterfallWidth}像素/行";
 		string readSpeedString = $"{InputBytesPerSecond / 1024} KiB/s";
 
 		float subfileWindowIndex = 0f;
@@ -630,7 +630,7 @@ public class Generator
 				ctx.DrawTextAndCache(new RichTextOptions(_font24)
 				{
 					Origin = new Vector2(32, 32),
-				}, "A/V SETTINGS", Color.DimGray)
+				}, "音视频设置", Color.DimGray)
 				.DrawText(new(_font32)
 				{
 					Origin = new Vector2(32, 32 + 24),
@@ -639,7 +639,7 @@ public class Generator
 				{
 					Origin = new Vector2(OutputVideoWidth - 32, 32),
 					HorizontalAlignment = HorizontalAlignment.Right,
-				}, "ABS. OFFSET", Color.DimGray)
+				}, "绝对偏移", Color.DimGray)
 				.DrawText(new(_font32)
 				{
 					Origin = new Vector2(OutputVideoWidth - 32, 32 + 24),
@@ -650,7 +650,7 @@ public class Generator
 				{
 					Origin = new Vector2(OutputVideoWidth - 256, 32),
 					HorizontalAlignment = HorizontalAlignment.Right,
-				}, "BITRATE", Color.DimGray)
+				}, "比特率", Color.DimGray)
 				.DrawText(new(_font32)
 				{
 					Origin = new Vector2(OutputVideoWidth - 256, 32 + 24),
@@ -673,7 +673,7 @@ public class Generator
 					{
 						Origin = new Vector2(32, OutputVideoHeight - 64 - (Title.Contains('\n') ? 32 : 0)),
 						VerticalAlignment = VerticalAlignment.Bottom,
-					}, "TARGET", Color.DimGray)
+					}, "目标", Color.DimGray)
 					.DrawTextAndCache(new(_font32)
 					{
 						Origin = new Vector2(32, OutputVideoHeight - 32),
