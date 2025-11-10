@@ -145,14 +145,17 @@ public class Generator
 		if (InputFileStream == null)
 		{
 			Logger.Info("正在打开文件…");
+			Logger.Debug($"正在打开文件 '{InputFilePath}'…");
 			InputFileStream = File.OpenRead(InputFilePath);
 		}
 
-		if (InputAuxiliaryFileStream != null)
+		if (InputAuxiliaryFileStream == null)
 		{
 			if (InputAuxiliaryFilePath != null)
 			{
+				Logger.Debug($"正在打开文件 '{InputAuxiliaryFilePath}'…");
 				InputAuxiliaryFileStream = File.OpenRead(InputAuxiliaryFilePath);
+				Logger.Debug($"  完成 ({InputAuxiliaryFileStream.Length / 1024} KiB)。");
 			}
 		}
 
@@ -292,6 +295,7 @@ public class Generator
 
 			Parser.InputStream = InputFileStream;
 			Parser.AuxiliaryInputStream = InputAuxiliaryFileStream;
+
 			subFiles = Parser.GetSubFiles();
 
 			_subfiles =
