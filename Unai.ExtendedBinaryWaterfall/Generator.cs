@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -24,8 +25,12 @@ public class Generator
 	public Stream InputAuxiliaryFileStream { get; set; }
 	public IParser Parser { get; set; }
 	public IExporter Exporter { get; set; }
+
 	private readonly Stopwatch _timer = new();
 	private List<SubFile> _subfiles = [];
+	private BinaryReader _targetFileReader = null;
+	private string _avSettingsString = null;
+	private string _readSpeedString = null;
 
 	public Dictionary<string, string> AdditionalCliArguments { get; } = [];
 
@@ -38,7 +43,7 @@ public class Generator
 
 	#endregion
 
-	#region Generator Registers
+	#region Generator State Machine Variables
 
 	private Image<Rgba32> _frameContent = null;
 	private Image<Rgba32> _viewportFramebuf = null;
@@ -46,6 +51,7 @@ public class Generator
 	private AudioBuffer _outputAudioBuffer = null;
 	private int _videoFrameX1, _videoFrameX2, _videoFrameY1, _videoFrameY2;
 	internal bool _exitRequested = false;
+	private float _subfileWindowIndex = 0f;
 
 	#endregion
 
@@ -147,6 +153,12 @@ public class Generator
 			Logger.Info("Opening files…");
 			Logger.Debug($"Opening file '{InputFilePath}'…");
 			InputFileStream = File.OpenRead(InputFilePath);
+			if (_targetFileReader != null)
+			{
+				_targetFileReader.Close();
+				_targetFileReader = null;
+			}
+			_targetFileReader = new BinaryReader(InputFileStream, Encoding.Default, true);
 		}
 
 		if (InputAuxiliaryFileStream == null)
@@ -158,6 +170,9 @@ public class Generator
 				Logger.Debug($"  Done ({InputAuxiliaryFileStream.Length / 1024} KiB).");
 			}
 		}
+
+		_avSettingsString = $"{AudioInputSampleRate} Hz, PCM {(AudioInputSampleFormat.IsSigned() ? "signed" : "unsigned")} {8 * AudioInputSampleFormat.GetByteSize()}-bit, {(AudioInputChannelCount == 2 ? "stereo" : "mono")}\nRGBA (32bpp), {WaterfallWidth} px/line";
+		_readSpeedString = $"{InputBytesPerSecond / 1024} KiB/s";
 
 		InitializeParser();
 
@@ -440,272 +455,18 @@ public class Generator
 	{
 		Logger.Info("Generating binary waterfall…");
 
-		string avSettingsString = $"{AudioInputSampleRate} Hz, PCM {(AudioInputSampleFormat.IsSigned() ? "signed" : "unsigned")} {8 * AudioInputSampleFormat.GetByteSize()}-bit, {(AudioInputChannelCount == 2 ? "stereo" : "mono")}\nRGBA (32bpp), {WaterfallWidth} px/line";
-		string readSpeedString = $"{InputBytesPerSecond / 1024} KiB/s";
+		int totalFrames = (int)(InputFileStream.Length / InputBytesPerFrame) + 1;
 
-		float subfileWindowIndex = 0f;
-		long currentOffset = 0;
-		int playHeadRelPos = 0;
-
-		using var targetFileReader = new BinaryReader(InputFileStream);
-
-		while (currentOffset < InputFileStream.Length)
+		for (int currentFrame = 0; currentFrame < totalFrames; currentFrame++)
 		{
-			// Get video buffer.
-
-			playHeadRelPos = 0;
-			var frameStartByteOffset = currentOffset.Align(WaterfallWidth * 4) - (WaterfallFrameLength / 2);
-			if (frameStartByteOffset < 0)
+			try
 			{
-				playHeadRelPos = (int)-(frameStartByteOffset / (WaterfallWidth * 4));
-				frameStartByteOffset = 0;
+				GenerateFrame(currentFrame);
 			}
-			else if (frameStartByteOffset + WaterfallFrameLength >= InputFileStream.Length)
+			catch (Exception ex)
 			{
-				playHeadRelPos = (int)((InputFileStream.Length - (frameStartByteOffset + WaterfallFrameLength)) / (WaterfallWidth * 4));
-				frameStartByteOffset = InputFileStream.Length - WaterfallFrameLength;
+				Logger.Error($"Uncaught exception when generating frame {currentFrame}: {ex}");
 			}
-			var frameEndByteOffset = frameStartByteOffset + WaterfallFrameLength;
-
-			InputFileStream.Position = frameStartByteOffset;
-			var currentVideoBuffer = targetFileReader.ReadBytes(WaterfallFrameLength);
-
-			// Get audio buffer.
-
-			var audioFrameStartByteOffset = currentOffset.Align(AudioInputSampleFormat.GetByteSize()) - (InputBytesPerFrame / 2);
-			if (audioFrameStartByteOffset < 0)
-			{
-				audioFrameStartByteOffset = 0;
-			}
-			else if (audioFrameStartByteOffset + InputBytesPerFrame >= InputFileStream.Length)
-			{
-				audioFrameStartByteOffset = InputFileStream.Length - InputBytesPerFrame;
-			}
-			var audioFrameEndByteOffset = audioFrameStartByteOffset + InputBytesPerFrame;
-
-			InputFileStream.Position = audioFrameStartByteOffset;
-			var currentAudioBuffer = targetFileReader.ReadBytes(InputBytesPerFrame);
-
-			// Get video data.
-
-			_viewportFramebuf = Image.LoadPixelData<Rgba32>(currentVideoBuffer, WaterfallWidth, WaterfallHeight);
-			_viewportFramebuf.ProcessPixelRows(pa =>
-			{
-				for (int y = 0; y < pa.Height; y++)
-				{
-					var row = pa.GetRowSpan(y);
-					for (int x = 0; x < row.Length; x++)
-					{
-						row[x].A = 255;
-					}
-				}
-			});
-			_viewportFramebuf.Mutate(ctx => ctx.Flip(FlipMode.Vertical).Resize(WaterfallScaledWidth, WaterfallScaledHeight, new NearestNeighborResampler()));
-
-			// Get audio data.
-
-			_inputAudioBuffer.LoadFromByteArray(currentAudioBuffer, AudioInputSampleFormat);
-			_outputAudioBuffer = new AudioBuffer(_inputAudioBuffer)
-				.Resample(AudioOutputSamplesPerFramePerChannel)
-				.RemixChannels(AudioOutputChannelCount);
-
-			// Compute registers.
-
-			var subfilesInFrame = _subfiles
-				.Select((sf, i) => new { key = i, value = sf })
-				.Where(kvp => kvp.value.Intersects(currentOffset - (InputBytesPerFrame / 2), currentOffset + (InputBytesPerFrame / 2)))
-				.ToList();
-			var currentSubfile = subfilesInFrame.LastOrDefault();
-
-			if (currentSubfile != null)
-			{
-				subfileWindowIndex = .2f * subfileWindowIndex + .8f * currentSubfile.key;
-			}
-
-			// Do render.
-
-			_frameContent.Mutate(ctx =>
-			{
-				// 1. Clear frame
-
-				ctx.Clear(new Rgba32(16, 16, 16, 255));
-
-				// 2. Draw subfile listing
-
-				int subfileX1 = OutputVideoWidth / 2;
-				int subfileX2 = OutputVideoWidth - 32;
-
-				int firstSubfileIndex = (int)(subfileWindowIndex - 7);
-				int lastSubfileIndex = (int)Math.Ceiling(subfileWindowIndex + 7);
-
-				float subfileH = 48;
-				float subfileY = (OutputVideoHeight / 2) - (subfileWindowIndex - firstSubfileIndex) * subfileH;
-
-				for (int sfi = firstSubfileIndex; sfi <= lastSubfileIndex; sfi++)
-				{
-					int i = sfi - (currentSubfile?.key ?? 0);
-
-					if (sfi < 0 || sfi >= _subfiles.Count)
-					{
-						subfileY += subfileH;
-						continue;
-					}
-
-					var subfile = _subfiles[sfi];
-
-					bool isMainSubfile = sfi == (currentSubfile?.key ?? -1);
-
-					ctx.DrawText(_drawOpts, new RichTextOptions(_font32)
-					{
-						Origin = new Vector2(subfileX1, subfileY),
-						VerticalAlignment = VerticalAlignment.Center,
-					}, isMainSubfile ? "▶" : " ", new SolidBrush(Color.White), null)
-					.DrawTextAndCache(_drawOpts, new RichTextOptions(_font32)
-					{
-						Origin = new Vector2(subfileX1 + 32, subfileY),
-						VerticalAlignment = VerticalAlignment.Center,
-						FallbackFontFamilies = _emojiFontFamily.Name != null ? [_emojiFontFamily] : null,
-					}, $"{Utils.GetFileTypeEmoji(subfile)} {Utils.TruncateString(subfile.FileName, 40)}", new SolidBrush(Color.White), null)
-					.DrawTextAndCache(_drawOpts, new RichTextOptions(_font32)
-					{
-						Origin = new Vector2(subfileX2, subfileY),
-						HorizontalAlignment = HorizontalAlignment.Right,
-						VerticalAlignment = VerticalAlignment.Center,
-					}, Utils.ToByteSizeString(subfile.Length), new SolidBrush(Color.DimGray), null);
-
-					if (isMainSubfile)
-					{
-						float percentOfSubfile = (currentOffset - subfile.StartOffset) / (float)subfile.Length;
-
-						ctx.DrawText(_drawOpts, new RichTextOptions(_font16)
-						{
-							Origin = new PointF(subfileX1 + 48, subfileY + 20),
-							HorizontalAlignment = HorizontalAlignment.Center,
-							VerticalAlignment = VerticalAlignment.Center,
-						}, $"{(int)Math.Clamp(percentOfSubfile * 100, 0, 100)} %", new SolidBrush(Color.White), null)
-						.DrawProgressBar(percentOfSubfile, subfileX1 + 80, subfileX2, subfileY + 20);
-					}
-
-					subfileY += subfileH;
-				}
-
-				// 3. Draw binary waterfall viewport
-
-				ctx.DrawImage(_viewportFramebuf, new Point(_videoFrameX1, _videoFrameY1), 1f)
-				.DrawText(new RichTextOptions(_font32)
-				{
-					Origin = new Vector2(32, (OutputVideoHeight / 2) + (playHeadRelPos * (WaterfallScaledHeight / WaterfallHeight))),
-					VerticalAlignment = VerticalAlignment.Center,
-				}, "▶", Color.White);
-
-				// 4. Draw top-bottom gradients
-
-				float shadowY1 = (OutputVideoHeight / 2) - subfileH * 8.5f;
-				float shadowY2 = (OutputVideoHeight / 2) + subfileH * 6.5f;
-
-				ctx.Fill(
-					new LinearGradientBrush(
-						new PointF(0, shadowY1),
-						new PointF(0, shadowY1 + subfileH * 2),
-						GradientRepetitionMode.None,
-						new(0.5f, Color.FromRgba(16, 16, 16, 255)),
-						new(1, Color.FromRgba(16, 16, 16, 0))
-					),
-					new RectangleF(0, shadowY1, OutputVideoWidth, subfileH * 2)
-				)
-				.Fill(
-					new LinearGradientBrush(
-						new PointF(0, shadowY2),
-						new PointF(0, shadowY2 + subfileH * 2),
-						GradientRepetitionMode.None,
-						new(0, Color.FromRgba(16, 16, 16, 0)),
-						new(0.5f, Color.FromRgba(16, 16, 16, 255))
-					),
-					new RectangleF(0, shadowY2, OutputVideoWidth, subfileH * 2)
-				)
-				.DrawTextAndCache(new RichTextOptions(_font24)
-				{
-					Origin = new Vector2(subfileX1 + 40, 160),
-					VerticalAlignment = VerticalAlignment.Center,
-				}, Utils.TruncateString(currentSubfile?.value?.FileDirectory ?? string.Empty, 72), Color.DimGray);
-
-				// 5. Draw Status and General Info
-
-				ctx.DrawTextAndCache(new RichTextOptions(_font24)
-				{
-					Origin = new Vector2(32, 32),
-				}, "A/V SETTINGS", Color.DimGray)
-				.DrawText(new(_font32)
-				{
-					Origin = new Vector2(32, 32 + 24),
-				}, avSettingsString, Color.White)
-				.DrawTextAndCache(new RichTextOptions(_font24)
-				{
-					Origin = new Vector2(OutputVideoWidth - 32, 32),
-					HorizontalAlignment = HorizontalAlignment.Right,
-				}, "ABS. OFFSET", Color.DimGray)
-				.DrawText(new(_font32)
-				{
-					Origin = new Vector2(OutputVideoWidth - 32, 32 + 24),
-					HorizontalAlignment = HorizontalAlignment.Right,
-					TextAlignment = TextAlignment.End,
-				}, $"{currentOffset / 1048576f:N2} MiB\n0x{currentOffset:X8}", Color.White)
-				.DrawTextAndCache(new RichTextOptions(_font24)
-				{
-					Origin = new Vector2(OutputVideoWidth - 256, 32),
-					HorizontalAlignment = HorizontalAlignment.Right,
-				}, "BITRATE", Color.DimGray)
-				.DrawText(new(_font32)
-				{
-					Origin = new Vector2(OutputVideoWidth - 256, 32 + 24),
-					HorizontalAlignment = HorizontalAlignment.Right,
-				}, readSpeedString, Color.White);
-
-				if (Author != null)
-				{
-					ctx.DrawTextAndCache(new(_font32)
-					{
-						Origin = new Vector2(OutputVideoWidth / 2, 32 + 24),
-						VerticalAlignment = VerticalAlignment.Center,
-						HorizontalAlignment = HorizontalAlignment.Center,
-					}, Author, Color.White);
-				}
-
-				if (Title != null)
-				{
-					ctx.DrawTextAndCache(new RichTextOptions(_font24)
-					{
-						Origin = new Vector2(32, OutputVideoHeight - 64 - (Title.Contains('\n') ? 32 : 0)),
-						VerticalAlignment = VerticalAlignment.Bottom,
-					}, "TARGET", Color.DimGray)
-					.DrawTextAndCache(new(_font32)
-					{
-						Origin = new Vector2(32, OutputVideoHeight - 32),
-						VerticalAlignment = VerticalAlignment.Bottom,
-					}, Title, Color.White);
-				}
-
-				if (currentSubfile?.value?.Icon != null)
-				{
-					ctx.DrawImage(currentSubfile.value.Icon, new Point(OutputVideoWidth / 2, OutputVideoHeight - 128 - 32), 1f);
-				}
-
-				if (currentSubfile?.value?.Description != null)
-				{
-					ctx.DrawText(new(_font32)
-					{
-						Origin = new Vector2(OutputVideoWidth / 2 + 128 + 32, OutputVideoHeight - 32),
-						VerticalAlignment = VerticalAlignment.Bottom,
-					}, currentSubfile.value.Description, Color.White);
-				}
-			});
-
-			Exporter.PushNewFrame(_frameContent, _outputAudioBuffer, _timer.Elapsed.TotalSeconds);
-			_timer.Restart();
-
-			currentOffset += InputBytesPerFrame;
-
-			OnProgress?.Invoke(currentOffset / (float)InputFileStream.Length);
 
 			if (_exitRequested)
 			{
@@ -714,5 +475,266 @@ public class Generator
 		}
 
 		Exporter.Finish();
+	}
+
+	public void GenerateFrame(int frameNum = 0)
+	{
+		long currentOffset = frameNum * InputBytesPerFrame;
+
+		// Get video buffer.
+
+		int playHeadRelPos = 0;
+		var frameStartByteOffset = currentOffset.Align(WaterfallWidth * 4) - (WaterfallFrameLength / 2);
+		if (frameStartByteOffset < 0)
+		{
+			playHeadRelPos = (int)-(frameStartByteOffset / (WaterfallWidth * 4));
+			frameStartByteOffset = 0;
+		}
+		else if (frameStartByteOffset + WaterfallFrameLength >= InputFileStream.Length)
+		{
+			playHeadRelPos = (int)((InputFileStream.Length - (frameStartByteOffset + WaterfallFrameLength)) / (WaterfallWidth * 4));
+			frameStartByteOffset = InputFileStream.Length - WaterfallFrameLength;
+		}
+		var frameEndByteOffset = frameStartByteOffset + WaterfallFrameLength;
+
+		InputFileStream.Position = frameStartByteOffset;
+		var currentVideoBuffer = _targetFileReader.ReadBytes(WaterfallFrameLength);
+
+		// Get audio buffer.
+
+		var audioFrameStartByteOffset = currentOffset.Align(AudioInputSampleFormat.GetByteSize()) - (InputBytesPerFrame / 2);
+		if (audioFrameStartByteOffset < 0)
+		{
+			audioFrameStartByteOffset = 0;
+		}
+		else if (audioFrameStartByteOffset + InputBytesPerFrame >= InputFileStream.Length)
+		{
+			audioFrameStartByteOffset = InputFileStream.Length - InputBytesPerFrame;
+		}
+		var audioFrameEndByteOffset = audioFrameStartByteOffset + InputBytesPerFrame;
+
+		InputFileStream.Position = audioFrameStartByteOffset;
+		var currentAudioBuffer = _targetFileReader.ReadBytes(InputBytesPerFrame);
+
+		// Get video data.
+
+		_viewportFramebuf = Image.LoadPixelData<Rgba32>(currentVideoBuffer, WaterfallWidth, WaterfallHeight);
+		_viewportFramebuf.ProcessPixelRows(pa =>
+		{
+			for (int y = 0; y < pa.Height; y++)
+			{
+				var row = pa.GetRowSpan(y);
+				for (int x = 0; x < row.Length; x++)
+				{
+					row[x].A = 255;
+				}
+			}
+		});
+		_viewportFramebuf.Mutate(ctx => ctx.Flip(FlipMode.Vertical).Resize(WaterfallScaledWidth, WaterfallScaledHeight, new NearestNeighborResampler()));
+
+		// Get audio data.
+
+		_inputAudioBuffer.LoadFromByteArray(currentAudioBuffer, AudioInputSampleFormat);
+		_outputAudioBuffer = new AudioBuffer(_inputAudioBuffer)
+			.Resample(AudioOutputSamplesPerFramePerChannel)
+			.RemixChannels(AudioOutputChannelCount);
+
+		// Compute registers.
+
+		var subfilesInFrame = _subfiles
+			.Select((sf, i) => new { key = i, value = sf })
+			.Where(kvp => kvp.value.Intersects(currentOffset - (InputBytesPerFrame / 2), currentOffset + (InputBytesPerFrame / 2)))
+			.ToList();
+		var currentSubfile = subfilesInFrame.LastOrDefault();
+
+		if (currentSubfile != null)
+		{
+			_subfileWindowIndex = .2f * _subfileWindowIndex + .8f * currentSubfile.key;
+		}
+
+		// Do render.
+
+		_frameContent.Mutate(ctx =>
+		{
+			// 1. Clear frame
+
+			ctx.Clear(new Rgba32(16, 16, 16, 255));
+
+			// 2. Draw subfile listing
+
+			int subfileX1 = OutputVideoWidth / 2;
+			int subfileX2 = OutputVideoWidth - 32;
+
+			int firstSubfileIndex = (int)(_subfileWindowIndex - 7);
+			int lastSubfileIndex = (int)Math.Ceiling(_subfileWindowIndex + 7);
+
+			float subfileH = 48;
+			float subfileY = (OutputVideoHeight / 2) - (_subfileWindowIndex - firstSubfileIndex) * subfileH;
+
+			for (int sfi = firstSubfileIndex; sfi <= lastSubfileIndex; sfi++)
+			{
+				int i = sfi - (currentSubfile?.key ?? 0);
+
+				if (sfi < 0 || sfi >= _subfiles.Count)
+				{
+					subfileY += subfileH;
+					continue;
+				}
+
+				var subfile = _subfiles[sfi];
+
+				bool isMainSubfile = sfi == (currentSubfile?.key ?? -1);
+
+				ctx.DrawText(_drawOpts, new RichTextOptions(_font32)
+				{
+					Origin = new Vector2(subfileX1, subfileY),
+					VerticalAlignment = VerticalAlignment.Center,
+				}, isMainSubfile ? "▶" : " ", new SolidBrush(Color.White), null)
+				.DrawTextAndCache(_drawOpts, new RichTextOptions(_font32)
+				{
+					Origin = new Vector2(subfileX1 + 32, subfileY),
+					VerticalAlignment = VerticalAlignment.Center,
+					FallbackFontFamilies = _emojiFontFamily.Name != null ? [_emojiFontFamily] : null,
+				}, $"{Utils.GetFileTypeEmoji(subfile)} {Utils.TruncateString(subfile.FileName, 40)}", new SolidBrush(Color.White), null)
+				.DrawTextAndCache(_drawOpts, new RichTextOptions(_font32)
+				{
+					Origin = new Vector2(subfileX2, subfileY),
+					HorizontalAlignment = HorizontalAlignment.Right,
+					VerticalAlignment = VerticalAlignment.Center,
+				}, Utils.ToByteSizeString(subfile.Length), new SolidBrush(Color.DimGray), null);
+
+				if (isMainSubfile)
+				{
+					float percentOfSubfile = (currentOffset - subfile.StartOffset) / (float)subfile.Length;
+
+					ctx.DrawText(_drawOpts, new RichTextOptions(_font16)
+					{
+						Origin = new PointF(subfileX1 + 48, subfileY + 20),
+						HorizontalAlignment = HorizontalAlignment.Center,
+						VerticalAlignment = VerticalAlignment.Center,
+					}, $"{(int)Math.Clamp(percentOfSubfile * 100, 0, 100)} %", new SolidBrush(Color.White), null)
+					.DrawProgressBar(percentOfSubfile, subfileX1 + 80, subfileX2, subfileY + 20);
+				}
+
+				subfileY += subfileH;
+			}
+
+			// 3. Draw binary waterfall viewport
+
+			ctx.DrawImage(_viewportFramebuf, new Point(_videoFrameX1, _videoFrameY1), 1f)
+			.DrawText(new RichTextOptions(_font32)
+			{
+				Origin = new Vector2(32, (OutputVideoHeight / 2) + (playHeadRelPos * (WaterfallScaledHeight / WaterfallHeight))),
+				VerticalAlignment = VerticalAlignment.Center,
+			}, "▶", Color.White);
+
+			// 4. Draw top-bottom gradients
+
+			float shadowY1 = (OutputVideoHeight / 2) - subfileH * 8.5f;
+			float shadowY2 = (OutputVideoHeight / 2) + subfileH * 6.5f;
+
+			ctx.Fill(
+				new LinearGradientBrush(
+					new PointF(0, shadowY1),
+					new PointF(0, shadowY1 + subfileH * 2),
+					GradientRepetitionMode.None,
+					new(0.5f, Color.FromRgba(16, 16, 16, 255)),
+					new(1, Color.FromRgba(16, 16, 16, 0))
+				),
+				new RectangleF(0, shadowY1, OutputVideoWidth, subfileH * 2)
+			)
+			.Fill(
+				new LinearGradientBrush(
+					new PointF(0, shadowY2),
+					new PointF(0, shadowY2 + subfileH * 2),
+					GradientRepetitionMode.None,
+					new(0, Color.FromRgba(16, 16, 16, 0)),
+					new(0.5f, Color.FromRgba(16, 16, 16, 255))
+				),
+				new RectangleF(0, shadowY2, OutputVideoWidth, subfileH * 2)
+			)
+			.DrawTextAndCache(new RichTextOptions(_font24)
+			{
+				Origin = new Vector2(subfileX1 + 40, 160),
+				VerticalAlignment = VerticalAlignment.Center,
+			}, Utils.TruncateString(currentSubfile?.value?.FileDirectory ?? string.Empty, 72), Color.DimGray);
+
+			// 5. Draw Status and General Info
+
+			ctx.DrawTextAndCache(new RichTextOptions(_font24)
+			{
+				Origin = new Vector2(32, 32),
+			}, "A/V SETTINGS", Color.DimGray)
+			.DrawText(new(_font32)
+			{
+				Origin = new Vector2(32, 32 + 24),
+			}, _avSettingsString, Color.White)
+			.DrawTextAndCache(new RichTextOptions(_font24)
+			{
+				Origin = new Vector2(OutputVideoWidth - 32, 32),
+				HorizontalAlignment = HorizontalAlignment.Right,
+			}, "ABS. OFFSET", Color.DimGray)
+			.DrawText(new(_font32)
+			{
+				Origin = new Vector2(OutputVideoWidth - 32, 32 + 24),
+				HorizontalAlignment = HorizontalAlignment.Right,
+				TextAlignment = TextAlignment.End,
+			}, $"{currentOffset / 1048576f:N2} MiB\n0x{currentOffset:X8}", Color.White)
+			.DrawTextAndCache(new RichTextOptions(_font24)
+			{
+				Origin = new Vector2(OutputVideoWidth - 256, 32),
+				HorizontalAlignment = HorizontalAlignment.Right,
+			}, "BITRATE", Color.DimGray)
+			.DrawText(new(_font32)
+			{
+				Origin = new Vector2(OutputVideoWidth - 256, 32 + 24),
+				HorizontalAlignment = HorizontalAlignment.Right,
+			}, _readSpeedString, Color.White);
+
+			if (Author != null)
+			{
+				ctx.DrawTextAndCache(new(_font32)
+				{
+					Origin = new Vector2(OutputVideoWidth / 2, 32 + 24),
+					VerticalAlignment = VerticalAlignment.Center,
+					HorizontalAlignment = HorizontalAlignment.Center,
+				}, Author, Color.White);
+			}
+
+			if (Title != null)
+			{
+				ctx.DrawTextAndCache(new RichTextOptions(_font24)
+				{
+					Origin = new Vector2(32, OutputVideoHeight - 64 - (Title.Contains('\n') ? 32 : 0)),
+					VerticalAlignment = VerticalAlignment.Bottom,
+				}, "TARGET", Color.DimGray)
+				.DrawTextAndCache(new(_font32)
+				{
+					Origin = new Vector2(32, OutputVideoHeight - 32),
+					VerticalAlignment = VerticalAlignment.Bottom,
+				}, Title, Color.White);
+			}
+
+			if (currentSubfile?.value?.Icon != null)
+			{
+				ctx.DrawImage(currentSubfile.value.Icon, new Point(OutputVideoWidth / 2, OutputVideoHeight - 128 - 32), 1f);
+			}
+
+			if (currentSubfile?.value?.Description != null)
+			{
+				ctx.DrawText(new(_font32)
+				{
+					Origin = new Vector2(OutputVideoWidth / 2 + 128 + 32, OutputVideoHeight - 32),
+					VerticalAlignment = VerticalAlignment.Bottom,
+				}, currentSubfile.value.Description, Color.White);
+			}
+		});
+
+		Exporter.PushNewFrame(_frameContent, _outputAudioBuffer, _timer.Elapsed.TotalSeconds);
+		_timer.Restart();
+
+		currentOffset += InputBytesPerFrame;
+
+		OnProgress?.Invoke(currentOffset / (float)InputFileStream.Length);
 	}
 }
