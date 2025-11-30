@@ -24,7 +24,7 @@
 		<PackageReference Include="SDL-Sharp" Version="2.2.5" />
 		<PackageReference Include="SDL-Sharp-DLL" Version="2.1.4" />
 		<!-- Used by FfmpegExporter -->
-		<PackageReference Include="FFmpeg.AutoGen" Version="7.0.0" />
+		<PackageReference Include="FFmpeg.AutoGen" Version="8.0.0" />
 	</ItemGroup>
 
 </Project>

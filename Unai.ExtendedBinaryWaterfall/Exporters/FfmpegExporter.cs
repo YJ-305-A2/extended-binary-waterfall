@@ -297,7 +297,7 @@ public class FfmpegExporter : IExporter
 		// TODO: move to init method
 		if (_swsCtx == null)
 		{
-			_swsCtx = ffmpeg.sws_getContext(videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFramePre->format, videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFrame->format, ffmpeg.SWS_BILINEAR, null, null, null);
+			_swsCtx = ffmpeg.sws_getContext(videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFramePre->format, videoFrame.Width, videoFrame.Height, (AVPixelFormat)_videoAvFrame->format, (int)SwsFlags.SWS_BILINEAR, null, null, null);
 			if (_swsCtx == null)
 			{
 				Logger.Error("cannot initialize sws context");
