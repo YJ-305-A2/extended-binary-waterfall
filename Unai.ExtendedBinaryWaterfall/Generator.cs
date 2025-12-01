@@ -25,6 +25,7 @@ public class Generator
 	public Stream InputAuxiliaryFileStream { get; set; }
 	public IParser Parser { get; set; }
 	public IExporter Exporter { get; set; }
+	public int TotalFrames { get; internal set; }
 
 	private readonly Stopwatch _timer = new();
 	private List<SubFile> _subfiles = [];
@@ -159,6 +160,7 @@ public class Generator
 				_targetFileReader = null;
 			}
 			_targetFileReader = new BinaryReader(InputFileStream, Encoding.Default, true);
+			TotalFrames = (int)(InputFileStream.Length / InputBytesPerFrame) + 1;
 		}
 
 		if (InputAuxiliaryFileStream == null)
@@ -184,7 +186,7 @@ public class Generator
 
 		Logger.Info("Preparing audio/video generation…");
 
-		UpdateValues();
+		UpdateLayout();
 
 		_inputAudioBuffer = new(AudioInputSamplesPerFramePerChannel, AudioInputChannelCount);
 		_outputAudioBuffer = new(AudioOutputSamplesPerFramePerChannel, AudioOutputChannelCount);
@@ -252,6 +254,12 @@ public class Generator
 
 	private void InitializeExporter()
 	{
+		if (Exporter != null)
+		{
+			Logger.Debug($"Exporter already set up: '{Exporter.GetType().Name}'.");
+			return;
+		}
+
 		Logger.Info("Setting up exporter…");
 		Logger.Debug($"Requested exporter: '{ExporterId}'.");
 
@@ -308,11 +316,19 @@ public class Generator
 		{
 			Logger.Info("Parsing subfiles…");
 
+			// Pass the input stream(s) to the parser.
 			Parser.InputStream = InputFileStream;
 			Parser.AuxiliaryInputStream = InputAuxiliaryFileStream;
 
+			// Ensure that input streams start at zero when starting the parsing process.
+			InputFileStream.Position = 0;
+			if (InputAuxiliaryFileStream != null) InputAuxiliaryFileStream.Position = 0;
+
+			// Do the actual parsing.
 			subFiles = Parser.GetSubFiles();
 
+			// Order generated file listing by position inside the file (offset).
+			// Parse further with `ParseSubfile` if necessary.
 			_subfiles =
 			[
 				.. subFiles
@@ -378,9 +394,9 @@ public class Generator
 
 	#endregion
 
-	internal void UpdateValues()
+	public void UpdateLayout(bool force = true)
 	{
-		if (_frameContent == null || _frameContent.Width != OutputVideoWidth || _frameContent.Height != OutputVideoHeight)
+		if (force || _frameContent == null || _frameContent.Width != OutputVideoWidth || _frameContent.Height != OutputVideoHeight)
 		{
 			_frameContent = new(OutputVideoWidth, OutputVideoHeight);
 			var pixelCount = OutputVideoWidth * OutputVideoHeight;
@@ -419,9 +435,9 @@ public class Generator
 	{
 		Logger.Info("Generating introduction…");
 
-		var totalFrames = 5 * OutputFps; // 60FPS = 300
+		var totalIntroFrames = 5 * OutputFps; // 60FPS = 300
 
-		for (long frameNumber = 0; frameNumber < totalFrames; frameNumber++)
+		for (long frameNumber = 0; frameNumber < totalIntroFrames; frameNumber++)
 		{
 			_frameContent.Mutate(ctx => ctx.Clear(new Rgba32(16, 16, 16, 255)));
 
@@ -436,13 +452,13 @@ public class Generator
 				{
 					Origin = new Vector2(OutputVideoWidth / 2, OutputVideoHeight - 128),
 					HorizontalAlignment = HorizontalAlignment.Center,
-				}, $"Starting in {(totalFrames - frameNumber) / (float)OutputFps:N1} seconds…", Color.White)
-				.DrawProgressBar(frameNumber / (float)totalFrames, (int)(OutputVideoWidth * 0.3), (int)(OutputVideoWidth * 0.7), OutputVideoHeight - 64));
+				}, $"Starting in {(totalIntroFrames - frameNumber) / (float)OutputFps:N1} seconds…", Color.White)
+				.DrawProgressBar(frameNumber / (float)totalIntroFrames, (int)(OutputVideoWidth * 0.3), (int)(OutputVideoWidth * 0.7), OutputVideoHeight - 64));
 
 			Exporter.PushNewFrame(_frameContent, _outputAudioBuffer, _timer.Elapsed.TotalSeconds);
 			_timer.Restart();
 
-			OnProgress?.Invoke(frameNumber / (float)totalFrames);
+			OnProgress?.Invoke(frameNumber / (float)totalIntroFrames);
 
 			if (_exitRequested)
 			{
@@ -455,9 +471,7 @@ public class Generator
 	{
 		Logger.Info("Generating binary waterfall…");
 
-		int totalFrames = (int)(InputFileStream.Length / InputBytesPerFrame) + 1;
-
-		for (int currentFrame = 0; currentFrame < totalFrames; currentFrame++)
+		for (int currentFrame = 0; currentFrame < TotalFrames; currentFrame++)
 		{
 			try
 			{
