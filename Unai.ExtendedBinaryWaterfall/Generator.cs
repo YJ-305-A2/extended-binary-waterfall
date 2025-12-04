@@ -751,4 +751,12 @@ public class Generator
 
 		OnProgress?.Invoke(currentOffset / (float)InputFileStream.Length);
 	}
+
+	/// <summary>
+	/// Intended to be called from a different thread, to stop the thread generating the video output to stop.
+	/// </summary>
+	public void StopGeneration()
+	{
+		_exitRequested = true;
+	}
 }

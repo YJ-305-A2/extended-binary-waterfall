@@ -160,7 +160,7 @@ public class SdlExporter : IExporter
 							_framebuffer = new byte[Generator.OutputVideoWidth * Generator.OutputVideoHeight * 4];
 							SDL.FreeSurface(_surface);
 							SDL.CreateRGBSurface(0, Generator.OutputVideoWidth, Generator.OutputVideoHeight, 32, 0xff, 0xff00, 0xff0000, 0, out _surface);
-							Generator.UpdateValues();
+							Generator.UpdateLayout();
 						}
 					}
 					break;
