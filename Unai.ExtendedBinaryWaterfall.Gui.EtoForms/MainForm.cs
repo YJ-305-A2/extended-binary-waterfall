@@ -171,7 +171,14 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 			if (FileIsOpened)
 			{
 				Logger.Debug($"Generating frame #{_currentFrame}…");
-				_generator.GenerateFrame(_currentFrame);
+				try
+				{
+					_generator.GenerateFrame(_currentFrame);
+				}
+				catch (Exception ex)
+				{
+					Logger.Fail($"Cannot update video preview: {ex}");
+				}
 			}
 			_generator.UpdateLayout();
 			UpdateControls();
