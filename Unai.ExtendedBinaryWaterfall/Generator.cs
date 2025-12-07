@@ -160,8 +160,9 @@ public class Generator
 				_targetFileReader = null;
 			}
 			_targetFileReader = new BinaryReader(InputFileStream, Encoding.Default, true);
-			TotalFrames = (int)(InputFileStream.Length / InputBytesPerFrame) + 1;
 		}
+		
+		TotalFrames = (int)(InputFileStream.Length / InputBytesPerFrame) + 1;
 
 		if (InputAuxiliaryFileStream == null)
 		{
