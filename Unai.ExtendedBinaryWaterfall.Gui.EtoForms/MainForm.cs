@@ -31,6 +31,7 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 		internal Slider _uiPlayHead = null;
 		internal TableLayout _uiConfigPanel = null;
 		internal DropDown _uiParserDropDown = null;
+		internal TextBox _uiBitrate = null;
 
 		#endregion
 
@@ -89,14 +90,20 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 			_uiParserDropDown.SelectedKey = _nullParserId;
 			_uiParserDropDown.SelectedKeyChanged += HandleSetParser;
 
+			_uiBitrate = new()
+			{
+				Text = _generator.InputBytesPerSecond.ToString()
+			};
+			_uiBitrate.TextChanged += HandleSetBitrate;
+
 			_uiConfigPanel = new TableLayout()
 			{
 				Padding = 8,
 				Spacing = new Size(8, 8),
 				Rows =
 				{
-					new TableRow("Input file parser"),
-					new TableRow(_uiParserDropDown)
+					new TableRow("Input file parser", "Input bitrate (bytes/s)"),
+					new TableRow(_uiParserDropDown, _uiBitrate)
 				}
 			};
 
@@ -166,6 +173,7 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 				Logger.Debug($"Generating frame #{_currentFrame}…");
 				_generator.GenerateFrame(_currentFrame);
 			}
+			_generator.UpdateLayout();
 			UpdateControls();
 		}
 
@@ -173,7 +181,6 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 		{
 			_uiViewport.Width = _uiViewport.LogicalParent.Width;
 			if (_uiViewport.Width < 1) _uiViewport.Width = Width;
-			// _viewport.Height = (int)(_viewport.Width * (16f / 9));
 			_uiViewport.Height = ClientSize.Height - _uiPlayerBar.Height - _uiPlayerBar.Height - 32;
 
 			_uiPlayerBarTs.Text = $"{_currentFrame} / {_generator.TotalFrames}";
@@ -191,7 +198,7 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 			_generator.Exporter ??= new InternalExporter(this);
 
 			// TODO: Use Utils common method for this.
-			var inputFileExtension = System.IO.Path.GetExtension(_inputFilePath);
+			var inputFileExtension = Path.GetExtension(_inputFilePath);
 			bool formatDetected = false;
 			foreach (var parser in Utils.GetTypesWithAttribute<ParserAttribute>())
 			{
@@ -258,7 +265,6 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 			try
 			{
 				_generator.Initialize();
-				_generator.UpdateLayout();
 			}
 			catch (Exception ex)
 			{
@@ -267,6 +273,20 @@ namespace Unai.ExtendedBinaryWaterfall.Gui.EtoForms
 			}
 
 			UpdateAll();
+		}
+
+		private void HandleSetBitrate(object sender, EventArgs e)
+		{
+			if (int.TryParse(_uiBitrate.Text, out var result))
+			{
+				if (result > 1024)
+				{
+					_generator.InputBytesPerSecond = result;
+					_generator.Initialize();
+				}
+
+				UpdateAll();
+			}
 		}
 
 		private void HandleRenderCommand(object sender, EventArgs e)
