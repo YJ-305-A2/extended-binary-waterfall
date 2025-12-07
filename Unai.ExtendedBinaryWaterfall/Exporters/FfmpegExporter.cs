@@ -88,8 +88,8 @@ public class FfmpegExporter : IExporter
 			_videoCtx = ffmpeg.avcodec_alloc_context3(videoEnc);
 			_videoCtx->codec_type = AVMediaType.AVMEDIA_TYPE_VIDEO;
 			_videoCtx->pix_fmt = AVPixelFormat.AV_PIX_FMT_YUV420P;
-			_videoCtx->width = 1920;
-			_videoCtx->height = 1080;
+			_videoCtx->width = Generator.OutputVideoWidth;
+			_videoCtx->height = Generator.OutputVideoHeight;
 			_videoCtx->time_base.num = 1;
 			_videoCtx->time_base.den = videoFps.num;
 			_videoCtx->framerate.num = videoFps.num;
@@ -101,7 +101,6 @@ public class FfmpegExporter : IExporter
 			{
 				_videoCtx->flags |= ffmpeg.AV_CODEC_FLAG_GLOBAL_HEADER;
 			}
-			// ffmpeg.av_opt_set(_videoCtx->priv_data, "crf", "23", 0);
 			// h264 codec fails with EINVAL/11 if extradata does not get allocated manually.
 			if (_videoCtx->codec->id == AVCodecID.AV_CODEC_ID_H264)
 			{
@@ -172,8 +171,8 @@ public class FfmpegExporter : IExporter
 
 			_videoAvFrame = ffmpeg.av_frame_alloc();
 			_videoAvFrame->format = (int)AVPixelFormat.AV_PIX_FMT_YUV420P;
-			_videoAvFrame->width = 1920;
-			_videoAvFrame->height = 1080;
+			_videoAvFrame->width = Generator.OutputVideoWidth;
+			_videoAvFrame->height = Generator.OutputVideoHeight;
 			_videoAvFrame->time_base = _videoStream->time_base;
 
 			ret = ffmpeg.av_frame_get_buffer(_videoAvFrame, 0);
@@ -181,8 +180,8 @@ public class FfmpegExporter : IExporter
 
 			_videoAvFramePre = ffmpeg.av_frame_alloc();
 			_videoAvFramePre->format = (int)AVPixelFormat.AV_PIX_FMT_RGBA;
-			_videoAvFramePre->width = 1920;
-			_videoAvFramePre->height = 1080;
+			_videoAvFramePre->width = Generator.OutputVideoWidth;
+			_videoAvFramePre->height = Generator.OutputVideoHeight;
 			_videoAvFramePre->time_base = _videoStream->time_base;
 
 			ret = ffmpeg.av_frame_get_buffer(_videoAvFramePre, 0);
