@@ -310,6 +310,8 @@ public class Generator
 
 	private void ParseSubfiles()
 	{
+		if (_subfiles.Count != 0) return;
+
 		IEnumerable<SubFile> subFiles = null;
 
 		if (Parser != null)
