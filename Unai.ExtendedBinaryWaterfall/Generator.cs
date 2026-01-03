@@ -170,7 +170,7 @@ public class Generator
 			{
 				Logger.Debug($"正在打开文件 '{InputAuxiliaryFilePath}'…");
 				InputAuxiliaryFileStream = File.OpenRead(InputAuxiliaryFilePath);
-				Logger.Debug($"  完成 ({InputAuxiliaryFileStream.Length / 1024} KiB)。");
+				Logger.Debug($"  完成 ({InputAuxiliaryFileStream.Length / 1024} KiB)。"); 
 			}
 		}
 
