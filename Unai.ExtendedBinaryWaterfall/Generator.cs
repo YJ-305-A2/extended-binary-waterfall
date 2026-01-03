@@ -174,8 +174,8 @@ public class Generator
 			}
 		}
 
-		_avSettingsString = $"{AudioInputSampleRate} Hz, PCM {(AudioInputSampleFormat.IsSigned() ? "signed" : "unsigned")} {8 * AudioInputSampleFormat.GetByteSize()}-bit, {(AudioInputChannelCount == 2 ? "stereo" : "mono")}\nRGBA (32bpp), {WaterfallWidth} px/line";
-		_readSpeedString = $"{InputBytesPerSecond / 1024} KiB/s";
+		_avSettingsString = $"{AudioInputSampleRate} Hz, PCM {(AudioInputSampleFormat.IsSigned() ? "有符号" : "无符号")} {8 * AudioInputSampleFormat.GetByteSize()} 位, {(AudioInputChannelCount == 2 ? "立体声" : "单声道")}\nRGBA (32bpp), {WaterfallWidth} 像素/行";
+		_readSpeedString = $"{InputBytesPerSecond / 1024} KiB/秒";
 
 		InitializeParser();
 
@@ -185,7 +185,7 @@ public class Generator
 
 		InitializeFonts();
 
-		Logger.Info("正在准备生成音频/视频...");
+		Logger.Info("正在准备生成音频/视频…");
 
 		UpdateLayout();
 
@@ -257,12 +257,12 @@ public class Generator
 	{
 		if (Exporter != null)
 		{
-			Logger.Debug($"Exporter already set up: '{Exporter.GetType().Name}'.");
-			return;
+			Logger.Debug($"导出器已设置：'{Exporter.GetType().Name}'。");
+    		return;
 		}
 
-		Logger.Info("Setting up exporter…");
-		Logger.Debug($"Requested exporter: '{ExporterId}'.");
+		Logger.Info("正在设置导出器…");
+		Logger.Debug($"请求的导出器：'{ExporterId}'。");
 
 		if (ExporterId != null)
 		{
@@ -455,7 +455,7 @@ public class Generator
 				{
 					Origin = new Vector2(OutputVideoWidth / 2, OutputVideoHeight - 128),
 					HorizontalAlignment = HorizontalAlignment.Center,
-				}, $"Starting in {(totalIntroFrames - frameNumber) / (float)OutputFps:N1} seconds…", Color.White)
+				}, $"将在 {(totalIntroFrames - frameNumber) / (float)OutputFps:N1} 秒后开始…", Color.White)
 				.DrawProgressBar(frameNumber / (float)totalIntroFrames, (int)(OutputVideoWidth * 0.3), (int)(OutputVideoWidth * 0.7), OutputVideoHeight - 64));
 
 			Exporter.PushNewFrame(_frameContent, _outputAudioBuffer, _timer.Elapsed.TotalSeconds);
@@ -482,7 +482,7 @@ public class Generator
 			}
 			catch (Exception ex)
 			{
-				Logger.Error($"Uncaught exception when generating frame {currentFrame}: {ex}");
+				Logger.Error($"生成帧 {currentFrame} 时发生未捕获的异常：{ex}");
 			}
 
 			if (_exitRequested)
@@ -681,7 +681,7 @@ public class Generator
 			ctx.DrawTextAndCache(new RichTextOptions(_font24)
 			{
 				Origin = new Vector2(32, 32),
-			}, "A/V SETTINGS", Color.DimGray)
+			}, "音视频设置", Color.DimGray)
 			.DrawText(new(_font32)
 			{
 				Origin = new Vector2(32, 32 + 24),
@@ -690,7 +690,7 @@ public class Generator
 			{
 				Origin = new Vector2(OutputVideoWidth - 32, 32),
 				HorizontalAlignment = HorizontalAlignment.Right,
-			}, "ABS. OFFSET", Color.DimGray)
+			}, "绝对偏移", Color.DimGray)
 			.DrawText(new(_font32)
 			{
 				Origin = new Vector2(OutputVideoWidth - 32, 32 + 24),
@@ -701,7 +701,7 @@ public class Generator
 			{
 				Origin = new Vector2(OutputVideoWidth - 256, 32),
 				HorizontalAlignment = HorizontalAlignment.Right,
-			}, "BITRATE", Color.DimGray)
+			}, "比特率", Color.DimGray)
 			.DrawText(new(_font32)
 			{
 				Origin = new Vector2(OutputVideoWidth - 256, 32 + 24),
@@ -724,7 +724,7 @@ public class Generator
 				{
 					Origin = new Vector2(32, OutputVideoHeight - 64 - (Title.Contains('\n') ? 32 : 0)),
 					VerticalAlignment = VerticalAlignment.Bottom,
-				}, "TARGET", Color.DimGray)
+				}, "目标", Color.DimGray)
 				.DrawTextAndCache(new(_font32)
 				{
 					Origin = new Vector2(32, OutputVideoHeight - 32),

@@ -28,7 +28,7 @@ public class AudioFrameResizer<T>
 				{
 					subBufSize = input.Length - inputOfs;
 				}
-				Logger.Trace($"Audio buffer rearrangement: {subBufSize} bytes, {inputOfs}–{inputOfs + subBufSize}/{input.Length} → {outputOfs}-{outputOfs + subBufSize}/{BufferLength}");
+				Logger.Trace($"音频缓冲区重排：{subBufSize} 字节，{inputOfs}–{inputOfs + subBufSize}/{input.Length} → {outputOfs}-{outputOfs + subBufSize}/{BufferLength}");
 				Array.Copy(input, inputOfs, _outputBuffer, outputOfs, subBufSize);
 				inputOfs += subBufSize;
 				outputOfs += subBufSize;
@@ -36,7 +36,7 @@ public class AudioFrameResizer<T>
 
 				if (inputOfs < input.Length)
 				{
-					Logger.Trace($"Sending output buffer…");
+					Logger.Trace($"发送输出缓冲区…");
 					OutputCallback?.Invoke(_outputBuffer);
 				}
 			}
@@ -44,7 +44,7 @@ public class AudioFrameResizer<T>
 			_bufOfs = outputOfs;
 			if (_bufOfs > BufferLength)
 			{
-				Logger.Warning($"Buffer overrun {_bufOfs} > {BufferLength}");
+				Logger.Warning($"缓冲区溢出 {_bufOfs} > {BufferLength}");
 				_bufOfs %= BufferLength;
 			}
 		}

@@ -24,8 +24,7 @@
 		winget install "FFmpeg (Shared)"
 		```
 		安装完成后，重启命令行并确保`PATH`环境变量已更新为包含 FFmpeg 库的路径。  
-	- 或者，您可以从 [CODEX FFMPEG](https://www.gyan.dev/ffmpeg/builds/) 手动下载库（确保下载"shared"版本）。  
-	下载后，将 DLL 文件移动到已知路径（例如`C:\ffmpeg`）。
+	- 或者，您可以从 [CODEX FFMPEG](https://www.gyan.dev/ffmpeg/builds/) 手动下载库（确保下载"shared"版本）。下载后，将 DLL 文件移动到已知路径（例如`C:\ffmpeg`）。
 
 - [Unifont](https://unifoundry.com/unifont/index.html)  
 	- 某些 Linux 发行版可以通过各自的包管理器安装此字体，但在 Windows 中需要手动下载。  
